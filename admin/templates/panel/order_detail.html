@@ -1,0 +1,132 @@
+{% extends "panel/base.html" %}
+{% load panel_tags %}
+
+{% block title %}Order #{{ order.order_number }}{% endblock %}
+{% block breadcrumb %}<p class="crumbs"><a href="{% url 'panel:orders' %}">Orders</a> / #{{ order.order_number }}</p>{% endblock %}
+{% block heading %}Order #{{ order.order_number }} <span class="pill pill--{{ order.status|order_tone }} pill--lg">{{ order.get_status_display }}</span>{% endblock %}
+
+{% block content %}
+<div class="detail detail--order">
+  <div class="detail__main">
+    <!-- Progress -->
+    <section class="card">
+      {% if order.status == "cancelled" %}
+        <div class="alert alert--error">{% include "panel/partials/icon.html" with name="x" %}<span><b>Cancelled.</b> {{ order.cancel_reason }}</span></div>
+      {% else %}
+        <ol class="steps">
+          {% for step in timeline %}
+            <li class="{% if step.done %}is-done{% endif %}"><span class="steps__dot">{% if step.done %}{% include "panel/partials/icon.html" with name="check" %}{% endif %}</span>{{ step.label }}</li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+      <p class="muted small">Placed {{ order.created_at|date:"j M Y, g:i A" }}{% if order.delivered_at %} · Delivered {{ order.delivered_at|date:"g:i A" }} ({{ order.created_at|timesince:order.delivered_at }}){% endif %}</p>
+    </section>
+
+    <!-- Items -->
+    <section class="card card--flush">
+      <header class="card__head"><h2>Items</h2></header>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Product</th><th class="num">Price</th><th class="num">Qty</th><th class="num">Total</th></tr></thead>
+          <tbody>
+            {% for item in items %}
+              <tr>
+                <td><b>{{ item.product_name }}</b><div class="sub">{{ item.volume_ml }} ml</div></td>
+                <td class="num">{{ item.price|inr }}</td>
+                <td class="num">{{ item.quantity }}</td>
+                <td class="num strong">{{ item.line_total|inr }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <dl class="bill">
+        <dt>Items total</dt><dd>{{ order.item_total|inr }}</dd>
+        <dt>Delivery fee</dt><dd>{% if order.delivery_fee %}{{ order.delivery_fee|inr }}{% else %}Free{% endif %}</dd>
+        <dt>Platform fee</dt><dd>{{ order.platform_fee|inr }}</dd>
+        <dt class="bill__total">Grand total</dt><dd class="bill__total">{{ order.grand_total|inr }}</dd>
+      </dl>
+    </section>
+
+    <!-- People -->
+    <div class="grid-3">
+      <section class="card">
+        <h3 class="card__title">Customer</h3>
+        {% if user.is_admin %}
+          <a href="{% url 'panel:user_detail' order.customer.user.pk %}" class="person">
+            <span class="avatar avatar--{{ order.customer.user|avatar_tone }}">{{ order.customer.user|initials }}</span>
+            <span><b>{{ order.customer.user.display_name }}</b><small class="mono">{{ order.customer.user.phone }}</small></span>
+          </a>
+          <p class="muted small spaced">{{ order.delivery_address }}</p>
+        {% else %}
+          <div class="person">
+            <span class="avatar avatar--{{ order.customer.user|avatar_tone }}">{{ order.customer.user|initials }}</span>
+            <span><b>{{ order.customer.user.display_name }}</b><small>Contact details are shared with the rider only</small></span>
+          </div>
+        {% endif %}
+      </section>
+      <section class="card">
+        <h3 class="card__title">Retailer</h3>
+        <a href="{% url 'panel:shop_detail' order.shop.pk %}" class="person">
+          <span class="avatar avatar--square">{% include "panel/partials/icon.html" with name="store" %}</span>
+          <span><b>{{ order.shop.name }}</b><small class="mono">{{ order.shop.licence_number }}</small></span>
+        </a>
+        <p class="muted small spaced">{{ order.shop.address }}, {{ order.shop.city }}</p>
+      </section>
+      <section class="card">
+        <h3 class="card__title">Delivery partner</h3>
+        {% if order.delivery_partner %}
+          {% if user.is_admin %}<a href="{% url 'panel:partner_detail' order.delivery_partner.pk %}" class="person">{% else %}<div class="person">{% endif %}
+            <span class="avatar avatar--{{ order.delivery_partner.user|avatar_tone }}">{{ order.delivery_partner.user|initials }}</span>
+            <span><b>{{ order.delivery_partner.user.display_name }}</b><small>{{ order.delivery_partner.get_vehicle_type_display }} · ★ {{ order.delivery_partner.rating }}</small></span>
+          {% if user.is_admin %}</a>{% else %}</div>{% endif %}
+        {% else %}
+          <p class="muted">Not assigned yet</p>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+
+  <!-- Right: manage -->
+  <aside class="detail__side">
+    {% if form %}
+    <section class="card sticky">
+      <h3 class="card__title">Manage order</h3>
+      <form method="post" class="stack">
+        {% csrf_token %}
+        {% for field in form %}
+          {% if field.name == "id_checked_at_delivery" %}
+            <label class="checkbox">
+              {{ field }} <span>Customer's ID was checked at delivery</span>
+            </label>
+          {% else %}
+            <div class="field">
+              <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+              {{ field }}
+            </div>
+          {% endif %}
+          {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        {% endfor %}
+        <button class="btn btn--primary btn--block">Save changes</button>
+      </form>
+    </section>
+    {% else %}
+    <section class="card">
+      <h3 class="card__title">Order handling</h3>
+      <p class="muted small">The Booze team updates the order status and assigns the rider. Keep the items packed and ready for pickup once the order is confirmed.</p>
+    </section>
+    {% endif %}
+
+    <section class="card">
+      <h3 class="card__title">Payment &amp; compliance</h3>
+      <dl class="facts">
+        <dt>Method</dt><dd>{{ order.get_payment_method_display }}</dd>
+        <dt>Payment</dt><dd>{{ order.get_payment_status_display }}</dd>
+        <dt>Age confirmed</dt><dd>{% if order.age_confirmed_by_customer %}<span class="check-text is-ok">{% include "panel/partials/icon.html" with name="check" %} Yes</span>{% else %}<span class="check-text is-warn">No</span>{% endif %}</dd>
+        <dt>ID checked</dt><dd>{% if order.id_checked_at_delivery %}<span class="check-text is-ok">{% include "panel/partials/icon.html" with name="check" %} Yes</span>{% else %}<span class="muted">Not yet</span>{% endif %}</dd>
+        {% if user.is_admin %}<dt>Delivery OTP</dt><dd class="mono">{{ order.delivery_otp }}</dd>{% endif %}
+      </dl>
+    </section>
+  </aside>
+</div>
+{% endblock %}

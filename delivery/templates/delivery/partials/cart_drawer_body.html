@@ -1,0 +1,61 @@
+{% if cart.items %}
+  <div class="drawer__scroll">
+    <div class="panel">
+      <div class="eta">
+        <div class="eta__icon">⏱</div>
+        <div>
+          <strong>Delivery in {{ delivery_minutes|default:15 }} minutes</strong>
+          <small>Shipment of {{ cart.count }} item{{ cart.count|pluralize }}</small>
+        </div>
+      </div>
+
+      {% for row in cart.items %}
+        {% with sp=row.shop_product %}
+          <div class="cart-item">
+            <div class="cart-item__thumb">{% include "delivery/partials/bottle.html" with product=sp.product %}</div>
+            <div class="cart-item__info">
+              <p class="cart-item__name">{{ sp.product.name }}</p>
+              <p class="muted">{{ sp.product.volume_label }}</p>
+              <p class="price">₹{{ sp.price|floatformat:0 }}{% if sp.discount_percent %} <s>₹{{ sp.product.mrp|floatformat:0 }}</s>{% endif %}</p>
+            </div>
+            {% include "delivery/partials/qty_control.html" with id=sp.id qty=row.quantity %}
+          </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+
+    <div class="panel">
+      <h3 class="panel__title">Bill details</h3>
+      <div class="bill-row"><span>Items total</span><span>{% if cart.savings %}<s class="muted">₹{{ cart.mrp_total|floatformat:0 }}</s> {% endif %}₹{{ cart.item_total|floatformat:0 }}</span></div>
+      <div class="bill-row">
+        <span>Delivery charge</span>
+        <span>{% if cart.delivery_fee %}₹{{ cart.delivery_fee|floatformat:0 }}{% else %}<s class="muted">₹{{ cart.standard_delivery_fee|floatformat:0 }}</s> <b class="green">FREE</b>{% endif %}</span>
+      </div>
+      <div class="bill-row"><span>Platform fee</span><span>₹{{ cart.platform_fee|floatformat:0 }}</span></div>
+      <div class="bill-row bill-row--total"><span>Grand total</span><span>₹{{ cart.grand_total|floatformat:0 }}</span></div>
+      {% if cart.amount_for_free_delivery %}
+        <p class="hint">Add ₹{{ cart.amount_for_free_delivery|floatformat:0 }} more for <b>free delivery</b></p>
+      {% endif %}
+      {% if cart.savings %}<p class="savings">🎉 You're saving ₹{{ cart.savings|floatformat:0 }} on this order</p>{% endif %}
+    </div>
+
+    <div class="panel panel--note">
+      <h3 class="panel__title">Before you order</h3>
+      <p>Sold & billed by <b>{{ cart.items.0.shop_product.shop.name }}</b> (licensed retailer). Keep a valid government ID ready — our partner will verify your age at the door.</p>
+    </div>
+  </div>
+
+  <div class="drawer__foot">
+    <a href="{% url 'delivery:checkout' %}" class="checkout-btn">
+      <span><b>₹{{ cart.grand_total|floatformat:0 }}</b><small>TOTAL</small></span>
+      <span>Proceed to checkout ›</span>
+    </a>
+  </div>
+{% else %}
+  <div class="empty">
+    <div class="empty__art">🛒</div>
+    <h3>Your cart is empty</h3>
+    <p>Chilled drinks are just a few taps away.</p>
+    <button class="btn btn--primary" data-close-cart>Start shopping</button>
+  </div>
+{% endif %}

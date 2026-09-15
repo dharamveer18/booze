@@ -1,0 +1,64 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}Home{% endblock %} · Booze Partner</title>
+  <link rel="icon" href="{% static 'delivery/img/favicon/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'delivery/img/favicon/favicon-32.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'delivery/img/favicon/apple-touch-icon.png' %}">
+  <meta name="theme-color" content="#00663F">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'rider/css/rider.css' %}">
+</head>
+<body>
+<div class="app {% if partner.is_online %}is-online{% endif %}">
+
+  {% block topbar %}
+  <header class="topbar">
+    <a href="{% url 'rider:home' %}" class="topbar__brand" aria-label="Home">
+      <img src="{% static 'delivery/img/favicon/icon-192.png' %}" alt="" width="36" height="36">
+      <span>
+        <small>{% if partner.is_online %}You're online{% else %}You're offline{% endif %}</small>
+        <b>Hi, {{ partner.user.first_name|default:partner.user.username }}</b>
+      </span>
+    </a>
+
+    <form method="post" action="{% url 'rider:toggle_online' %}">
+      {% csrf_token %}
+      <button class="duty {% if partner.is_online %}is-on{% endif %}" role="switch" aria-checked="{% if partner.is_online %}true{% else %}false{% endif %}">
+        <span class="duty__label">{% if partner.is_online %}Online{% else %}Offline{% endif %}</span>
+        <span class="duty__knob"></span>
+      </button>
+    </form>
+  </header>
+  {% endblock %}
+
+  {% if messages %}
+    <div class="toasts">
+      {% for message in messages %}
+        <div class="toast toast--{{ message.tags }}" role="status">
+          {% if message.tags == "error" %}{% include "rider/partials/icon.html" with name="alert" %}{% else %}{% include "rider/partials/icon.html" with name="check" %}{% endif %}
+          <span>{{ message }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main class="screen">
+    {% block content %}{% endblock %}
+  </main>
+
+  {% block tabbar %}
+  <nav class="tabbar" aria-label="Main">
+    <a href="{% url 'rider:home' %}" class="tab {% if tab == 'home' %}is-active{% endif %}">{% include "rider/partials/icon.html" with name="home" %}<span>Home</span></a>
+    <a href="{% url 'rider:history' %}" class="tab {% if tab == 'history' %}is-active{% endif %}">{% include "rider/partials/icon.html" with name="history" %}<span>History</span></a>
+    <a href="{% url 'rider:earnings' %}" class="tab {% if tab == 'earnings' %}is-active{% endif %}">{% include "rider/partials/icon.html" with name="wallet" %}<span>Earnings</span></a>
+    <a href="{% url 'rider:profile' %}" class="tab {% if tab == 'profile' %}is-active{% endif %}">{% include "rider/partials/icon.html" with name="user" %}<span>Profile</span></a>
+  </nav>
+  {% endblock %}
+</div>
+<script src="{% static 'rider/js/rider.js' %}"></script>
+</body>
+</html>

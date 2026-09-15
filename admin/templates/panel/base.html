@@ -1,0 +1,110 @@
+{% load static panel_tags %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Dashboard{% endblock %} · Booze Admin</title>
+  <link rel="icon" href="{% static 'delivery/img/favicon/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'delivery/img/favicon/favicon-32.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'delivery/img/favicon/icon-192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'delivery/img/favicon/apple-touch-icon.png' %}">
+  <meta name="theme-color" content="#00663F">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'panel/css/panel.css' %}">
+</head>
+<body>
+{% with current=request.resolver_match.url_name %}
+<div class="layout">
+
+  <!-- ============ Sidebar ============ -->
+  <aside class="sidebar" id="sidebar">
+    <a href="{% url 'panel:dashboard' %}" class="brand">
+      <span class="brand__mark">b</span>
+      <span class="brand__name">booze <small>{% if user.is_admin %}admin{% else %}partner{% endif %}</small></span>
+    </a>
+
+    <nav class="nav">
+      <p class="nav__label">Overview</p>
+      <a href="{% url 'panel:dashboard' %}" class="nav__link {% if current == 'dashboard' %}is-active{% endif %}">
+        {% include "panel/partials/icon.html" with name="dashboard" %} Dashboard
+      </a>
+
+      <p class="nav__label">{% if user.is_admin %}Manage{% else %}My business{% endif %}</p>
+      <a href="{% url 'panel:orders' %}" class="nav__link {% if 'order' in current %}is-active{% endif %}">
+        {% include "panel/partials/icon.html" with name="orders" %} Orders
+        {% if nav_counts.active_orders %}<span class="nav__badge">{{ nav_counts.active_orders }}</span>{% endif %}
+      </a>
+      {% if user.is_admin %}
+        <a href="{% url 'panel:users' %}" class="nav__link {% if 'user' in current %}is-active{% endif %}">
+          {% include "panel/partials/icon.html" with name="users" %} Users
+        </a>
+      {% endif %}
+      <a href="{% url 'panel:shops' %}" class="nav__link {% if 'shop' in current %}is-active{% endif %}">
+        {% include "panel/partials/icon.html" with name="store" %} {% if user.is_admin %}Retailers{% else %}My shops{% endif %}
+        {% if nav_counts.pending_shops %}<span class="nav__badge nav__badge--warn">{{ nav_counts.pending_shops }}</span>{% endif %}
+      </a>
+      {% if user.is_admin %}
+        <a href="{% url 'panel:partners' %}" class="nav__link {% if 'partner' in current %}is-active{% endif %}">
+          {% include "panel/partials/icon.html" with name="bike" %} Delivery partners
+          {% if nav_counts.pending_partners %}<span class="nav__badge nav__badge--warn">{{ nav_counts.pending_partners }}</span>{% endif %}
+        </a>
+      {% endif %}
+
+      <p class="nav__label">Shortcuts</p>
+      <a href="{% url 'delivery:home' %}" class="nav__link" target="_blank" rel="noopener">
+        {% include "panel/partials/icon.html" with name="store-front" %} View storefront
+      </a>
+      {% if user.is_admin %}
+        <a href="{% url 'rider:login' %}" class="nav__link" target="_blank" rel="noopener">
+          {% include "panel/partials/icon.html" with name="bike" %} Partner app
+        </a>
+      {% endif %}
+    </nav>
+
+    <div class="me">
+      <span class="avatar avatar--sm avatar--green">{{ user|initials }}</span>
+      <div class="me__info">
+        <strong>{{ user.display_name }}</strong>
+        <small>{% if user.is_admin %}Administrator{% else %}Retailer · {{ user.shop_owner.business_name }}{% endif %}</small>
+      </div>
+      <form method="post" action="{% url 'panel:logout' %}">
+        {% csrf_token %}
+        <button class="icon-btn" title="Log out" aria-label="Log out">{% include "panel/partials/icon.html" with name="logout" %}</button>
+      </form>
+    </div>
+  </aside>
+  <div class="scrim" data-close-sidebar></div>
+
+  <!-- ============ Main ============ -->
+  <div class="main">
+    <header class="topbar">
+      <button class="icon-btn topbar__menu" data-open-sidebar aria-label="Open menu">{% include "panel/partials/icon.html" with name="menu" %}</button>
+      <div class="topbar__title">
+        {% block breadcrumb %}{% endblock %}
+        <h1>{% block heading %}Dashboard{% endblock %}</h1>
+      </div>
+      <div class="topbar__actions">{% block actions %}{% endblock %}</div>
+    </header>
+
+    {% if messages %}
+      <div class="flash-stack">
+        {% for message in messages %}
+          <div class="flash flash--{{ message.tags }}" role="status">
+            {% if message.tags == "error" %}{% include "panel/partials/icon.html" with name="alert" %}{% else %}{% include "panel/partials/icon.html" with name="check" %}{% endif %}
+            <span>{{ message }}</span>
+            <button class="flash__close" data-dismiss aria-label="Dismiss">{% include "panel/partials/icon.html" with name="x" %}</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <main class="content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+{% endwith %}
+<script src="{% static 'panel/js/panel.js' %}"></script>
+</body>
+</html>

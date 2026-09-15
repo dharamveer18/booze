@@ -1,0 +1,12 @@
+{# ADD button, or a − qty + stepper when the item is already in the cart. JS keeps it in sync. #}
+<div class="qty" data-qty-for="{{ id }}">
+  {% if qty %}
+    <div class="stepper">
+      <button data-cart-change="-1" data-id="{{ id }}" aria-label="Remove one">−</button>
+      <span>{{ qty }}</span>
+      <button data-cart-change="1" data-id="{{ id }}" aria-label="Add one">+</button>
+    </div>
+  {% else %}
+    <button class="add-btn" data-cart-change="1" data-id="{{ id }}">ADD</button>
+  {% endif %}
+</div>

@@ -1,0 +1,107 @@
+{% extends "delivery/base.html" %}
+{% block title %}Checkout · Booze{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <a href="{% url 'delivery:home' %}" class="back">‹ Continue shopping</a>
+  <h1>Checkout</h1>
+</div>
+
+<div class="checkout">
+  <form method="post" id="order-form" class="checkout__main">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="place_order">
+
+    <!-- 1. Address -->
+    <section class="panel">
+      <h3 class="panel__title"><span class="step">1</span> Delivery address</h3>
+      {% if addresses %}
+        <div class="choice-list">
+          {% for address in addresses %}
+            <label class="choice">
+              <input type="radio" name="address_id" value="{{ address.id }}" {% if forloop.first %}checked{% endif %}>
+              <span class="choice__box">
+                <b>{{ address.get_label_display }}</b>
+                <small>{{ address.full_address }}</small>
+              </span>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">You don't have a saved address yet. Add one below.</p>
+      {% endif %}
+    </section>
+
+    <!-- 2. Payment -->
+    <section class="panel">
+      <h3 class="panel__title"><span class="step">2</span> Payment method</h3>
+      <div class="choice-list choice-list--row">
+        {% for value, label in payment_methods %}
+          <label class="choice">
+            <input type="radio" name="payment_method" value="{{ value }}" {% if forloop.first %}checked{% endif %}>
+            <span class="choice__box choice__box--center">
+              <span class="choice__emoji">{% if value == "upi" %}📱{% elif value == "card" %}💳{% else %}💵{% endif %}</span>
+              <b>{{ label }}</b>
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- 3. Compliance -->
+    <section class="panel">
+      <h3 class="panel__title"><span class="step">3</span> Age confirmation</h3>
+      <label class="check">
+        <input type="checkbox" name="age_confirmed">
+        <span>I confirm I am <b>{{ legal_age }} years or older</b> and will show a valid government photo ID at delivery. I understand the order will be cancelled if ID is not shown or if I appear intoxicated.</span>
+      </label>
+    </section>
+  </form>
+
+  <!-- Add address (separate form so it doesn't submit the order) -->
+  <details class="panel checkout__address" {% if address_form.errors or not addresses %}open{% endif %}>
+    <summary class="panel__title">＋ Add a new address</summary>
+    <form method="post" class="form">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="add_address">
+      <div class="pill-radios">{{ address_form.label }}</div>
+      <div class="form-grid">
+        {% for field in address_form %}{% if field.name != "label" %}
+          <div class="field {% if field.name == 'street' %}field--wide{% endif %}">
+            {{ field }}
+            {% for error in field.errors %}<small class="error">{{ error }}</small>{% endfor %}
+          </div>
+        {% endif %}{% endfor %}
+      </div>
+      <button class="btn btn--dark">Save address</button>
+    </form>
+  </details>
+
+  <!-- Summary -->
+  <aside class="checkout__side">
+    <div class="panel">
+      <h3 class="panel__title">Order summary</h3>
+      <p class="muted small">From <b>{{ shop.name }}</b> · Licence {{ shop.licence_number }}</p>
+      {% for row in cart.items %}
+        <div class="summary-item">
+          <span class="summary-item__qty">{{ row.quantity }}×</span>
+          <span class="summary-item__name">{{ row.shop_product.product.name }} <small class="muted">{{ row.shop_product.product.volume_label }}</small></span>
+          <span>₹{{ row.line_total|floatformat:0 }}</span>
+        </div>
+      {% endfor %}
+      <hr>
+      <div class="bill-row"><span>Items total</span><span>₹{{ cart.item_total|floatformat:0 }}</span></div>
+      <div class="bill-row"><span>Delivery charge</span><span>{% if cart.delivery_fee %}₹{{ cart.delivery_fee|floatformat:0 }}{% else %}<b class="green">FREE</b>{% endif %}</span></div>
+      <div class="bill-row"><span>Platform fee</span><span>₹{{ cart.platform_fee|floatformat:0 }}</span></div>
+      <div class="bill-row bill-row--total"><span>To pay</span><span>₹{{ cart.grand_total|floatformat:0 }}</span></div>
+      {% if cart.savings %}<p class="savings">🎉 You're saving ₹{{ cart.savings|floatformat:0 }}</p>{% endif %}
+
+      <button form="order-form" class="checkout-btn" {% if not addresses %}disabled{% endif %}>
+        <span><b>₹{{ cart.grand_total|floatformat:0 }}</b><small>TOTAL</small></span>
+        <span>Place order ›</span>
+      </button>
+      {% if not shop.is_open_now %}<p class="error small">Store is closed now · opens {{ shop.opens_at|time:"g:i A" }}</p>{% endif %}
+    </div>
+  </aside>
+</div>
+{% endblock %}

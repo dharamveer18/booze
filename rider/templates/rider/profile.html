@@ -1,0 +1,74 @@
+{% extends "rider/base.html" %}
+{% load panel_tags %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<section class="profile">
+  <span class="profile__avatar">{{ partner.user|initials }}</span>
+  <h1>{{ partner.user.display_name }}</h1>
+  <p class="muted mono">{{ partner.user.phone }}</p>
+  <div class="profile__badges">
+    {% if partner.is_verified %}<span class="chip chip--brand">{% include "rider/partials/icon.html" with name="shield" %} Verified partner</span>
+    {% else %}<span class="chip chip--amber">{% include "rider/partials/icon.html" with name="clock" %} Verification pending</span>{% endif %}
+    <span class="chip">{% include "rider/partials/icon.html" with name="star" %} {{ partner.rating }}</span>
+  </div>
+</section>
+
+<section class="stats stats--3">
+  <div class="stat"><span class="stat__label">Deliveries</span><span class="stat__value">{{ stats.delivered }}</span></div>
+  <div class="stat"><span class="stat__label">Completion</span><span class="stat__value">{{ completion_rate }}%</span></div>
+  <div class="stat"><span class="stat__label">Distance</span><span class="stat__value">{{ stats.km|default:0|floatformat:0 }}<small> km</small></span></div>
+</section>
+
+<section class="card card--flush">
+  <h3 class="card__title card__title--pad">Vehicle & documents</h3>
+  <ul class="menu">
+    <li>
+      <span class="badge-icon badge-icon--sm">{% include "rider/partials/icon.html" with name="bike" %}</span>
+      <span class="grow"><b>{{ partner.get_vehicle_type_display }}</b><small class="muted mono">{{ partner.vehicle_number|default:"Vehicle number not added" }}</small></span>
+    </li>
+    <li>
+      <span class="badge-icon badge-icon--sm">{% include "rider/partials/icon.html" with name="doc" %}</span>
+      <span class="grow"><b>Driving licence</b><small class="muted mono">{{ partner.driving_licence_number|default:"Not added" }}</small></span>
+      {% if partner.driving_licence_number %}<span class="chip chip--brand chip--xs">Added</span>{% else %}<span class="chip chip--amber chip--xs">Missing</span>{% endif %}
+    </li>
+    <li>
+      <span class="badge-icon badge-icon--sm">{% include "rider/partials/icon.html" with name="shield" %}</span>
+      <span class="grow"><b>Background check</b><small class="muted">Required to deliver alcohol</small></span>
+      {% if partner.is_verified %}<span class="chip chip--brand chip--xs">Approved</span>{% else %}<span class="chip chip--amber chip--xs">In review</span>{% endif %}
+    </li>
+  </ul>
+</section>
+
+<section class="card card--flush">
+  <h3 class="card__title card__title--pad">Account</h3>
+  <ul class="menu">
+    <li>
+      <span class="badge-icon badge-icon--sm">{% include "rider/partials/icon.html" with name="user" %}</span>
+      <span class="grow"><b>Date of birth</b><small class="muted">{{ partner.date_of_birth|date:"j M Y" }}</small></span>
+    </li>
+    <li>
+      <span class="badge-icon badge-icon--sm">{% include "rider/partials/icon.html" with name="clock" %}</span>
+      <span class="grow"><b>Partner since</b><small class="muted">{{ partner.created_at|date:"F Y" }}</small></span>
+    </li>
+    <li>
+      <a href="tel:18000002669" class="menu__link">
+        <span class="badge-icon badge-icon--sm">{% include "rider/partials/icon.html" with name="headset" %}</span>
+        <span class="grow"><b>Partner support</b><small class="muted">1800-000-2669 · 24×7</small></span>
+        {% include "rider/partials/icon.html" with name="chevron" %}
+      </a>
+    </li>
+  </ul>
+</section>
+
+<section class="tip">
+  {% include "rider/partials/icon.html" with name="shield" %}
+  <p><b>Safety first.</b> Wear a helmet, follow traffic rules and never ride after drinking. Deliveries are never worth the risk.</p>
+</section>
+
+<form method="post" action="{% url 'rider:logout' %}">
+  {% csrf_token %}
+  <button class="btn btn--ghost btn--lg btn--block btn--logout">{% include "rider/partials/icon.html" with name="logout" %} Log out</button>
+</form>
+{% endblock %}

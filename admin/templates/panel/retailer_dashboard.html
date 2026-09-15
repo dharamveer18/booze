@@ -1,0 +1,136 @@
+{% extends "panel/base.html" %}
+{% load panel_tags %}
+
+{% block title %}Dashboard{% endblock %}
+{% block breadcrumb %}<p class="crumbs">{{ user.shop_owner.business_name }} · {% now "l, j F Y" %}</p>{% endblock %}
+{% block heading %}Welcome back, {{ user.first_name|default:user.username }}{% endblock %}
+{% block actions %}
+  <a href="{% url 'panel:orders' %}?period=today" class="btn btn--ghost">Today's orders</a>
+{% endblock %}
+
+{% block content %}
+{% if not shops %}
+  <section class="card">
+    <div class="empty">
+      <span class="empty__icon">{% include "panel/partials/icon.html" with name="store" %}</span>
+      <p class="empty__title">No shops linked to your account yet</p>
+      <p class="muted">Ask the Booze team to assign your licensed shop. Once it's linked, your orders and sales will show up here.</p>
+    </div>
+  </section>
+{% else %}
+
+<!-- KPI tiles -->
+<section class="kpis">
+  <article class="kpi">
+    <p class="kpi__label">Sales today</p>
+    <p class="kpi__value">{{ stats.revenue_today|inr }}</p>
+    <p class="kpi__meta">
+      {% if stats.revenue_change is not None %}
+        <span class="delta {% if stats.revenue_change >= 0 %}delta--up{% else %}delta--down{% endif %}">
+          {% if stats.revenue_change >= 0 %}▲{% else %}▼{% endif %} {{ stats.revenue_change|stringformat:"d"|cut:"-" }}%
+        </span>
+      {% endif %}
+      vs {{ stats.revenue_yesterday|inr }} yesterday
+    </p>
+  </article>
+
+  <article class="kpi">
+    <p class="kpi__label">Orders today</p>
+    <p class="kpi__value">{{ stats.orders_today }}</p>
+    <p class="kpi__meta">vs {{ stats.orders_yesterday }} yesterday</p>
+  </article>
+
+  <article class="kpi">
+    <p class="kpi__label">To prepare</p>
+    <p class="kpi__value">{{ stats.to_prepare }}</p>
+    <p class="kpi__meta">Placed or confirmed orders</p>
+  </article>
+
+  <article class="kpi">
+    <p class="kpi__label">All-time orders</p>
+    <p class="kpi__value">{{ stats.orders_total }}</p>
+    <p class="kpi__meta">{{ stats.revenue_total|inr }} in sales</p>
+  </article>
+
+  <article class="kpi">
+    <p class="kpi__label">Products</p>
+    <p class="kpi__value">{{ stats.products }}</p>
+    <p class="kpi__meta">{% if stats.out_of_stock %}<span class="text-bad">{{ stats.out_of_stock }} out of stock</span>{% else %}All in stock{% endif %}</p>
+  </article>
+</section>
+
+<div class="grid-2">
+  {% include "panel/partials/orders_chart.html" %}
+
+  <!-- My shops -->
+  <section class="card">
+    <header class="card__head">
+      <div>
+        <h2>{% if shops|length == 1 %}My shop{% else %}My shops{% endif %}</h2>
+        <p class="muted">Licence status decides if customers can order</p>
+      </div>
+    </header>
+    <ul class="shop-cards">
+      {% for shop in shops %}
+        <li>
+          <a href="{% url 'panel:shop_detail' shop.pk %}" class="shop-card">
+            <span class="avatar avatar--square">{% include "panel/partials/icon.html" with name="store" %}</span>
+            <span class="shop-card__info">
+              <b>{{ shop.name }}</b>
+              <small class="mono">{{ shop.licence_number }}</small>
+            </span>
+            {% include "panel/partials/licence_status.html" %}
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+
+<div class="grid-2 grid-2--wide-left">
+  <section class="card card--flush">
+    <header class="card__head">
+      <div><h2>Recent orders</h2></div>
+      <a href="{% url 'panel:orders' %}" class="link">View all</a>
+    </header>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr><th>Order</th><th>Customer</th><th>Status</th><th class="num">Amount</th></tr>
+        </thead>
+        <tbody>
+          {% for order in recent_orders %}
+            <tr class="is-link" data-href="{% url 'panel:order_detail' order.order_number %}">
+              <td><a href="{% url 'panel:order_detail' order.order_number %}" class="strong">#{{ order.order_number }}</a><div class="sub">{{ order.created_at|timesince }} ago</div></td>
+              <td>{{ order.customer.user.display_name }}{% if shops|length > 1 %}<div class="sub">{{ order.shop.name }}</div>{% endif %}</td>
+              <td><span class="pill pill--{{ order.status|order_tone }}">{{ order.get_status_display }}</span></td>
+              <td class="num strong">{{ order.grand_total|inr }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="empty"><p class="muted">No orders yet.</p></div></td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="stack">
+    {% include "panel/partials/status_bars.html" %}
+
+    <section class="card card--flush">
+      <header class="card__head"><h2>Running low</h2></header>
+      <ul class="list list--padded">
+        {% for item in low_stock %}
+          <li class="stock-row">
+            <span><b>{{ item.product.name }}</b><div class="muted small">{{ item.product.volume_label }}{% if shops|length > 1 %} · {{ item.shop.name }}{% endif %}</div></span>
+            {% if item.stock == 0 %}<span class="pill pill--red">Out</span>{% else %}<span class="pill pill--amber">{{ item.stock }} left</span>{% endif %}
+          </li>
+        {% empty %}
+          <li class="muted">Everything is well stocked.</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

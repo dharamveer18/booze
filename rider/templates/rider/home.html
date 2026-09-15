@@ -1,0 +1,155 @@
+{% extends "rider/base.html" %}
+{% load static panel_tags rider_tags %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+
+<!-- Account state -->
+{% if not partner.is_verified %}
+  <section class="card card--warn">
+    <div class="card__row">
+      <span class="badge-icon badge-icon--warn">{% include "rider/partials/icon.html" with name="shield" %}</span>
+      <div>
+        <h2>Verification in progress</h2>
+        <p class="muted">Our team is checking your documents. You'll be able to go online and accept orders once it's approved — usually within 24 hours.</p>
+      </div>
+    </div>
+    <ul class="checklist">
+      <li class="is-done">{% include "rider/partials/icon.html" with name="check" %} Account created</li>
+      <li class="{% if partner.driving_licence_number %}is-done{% endif %}">{% include "rider/partials/icon.html" with name="check" %} Driving licence {% if not partner.driving_licence_number %}<em>missing</em>{% endif %}</li>
+      <li class="{% if partner.vehicle_number %}is-done{% endif %}">{% include "rider/partials/icon.html" with name="check" %} Vehicle details {% if not partner.vehicle_number %}<em>missing</em>{% endif %}</li>
+      <li>{% include "rider/partials/icon.html" with name="clock" %} Background check</li>
+    </ul>
+  </section>
+{% elif not partner.is_online %}
+  <section class="card card--offline">
+    <img src="{% static 'delivery/img/favicon/icon-192.png' %}" alt="" width="84" height="84" class="offline__art">
+    <h2>You're offline</h2>
+    <p class="muted">Go online to start getting delivery requests near you.</p>
+    <form method="post" action="{% url 'rider:toggle_online' %}">
+      {% csrf_token %}
+      <button class="btn btn--primary btn--lg btn--block">{% include "rider/partials/icon.html" with name="power" %} Go online</button>
+    </form>
+  </section>
+{% endif %}
+
+<!-- Today -->
+<section class="stats">
+  <div class="stat stat--hero">
+    <span class="stat__label">Today's earnings</span>
+    <span class="stat__value">{{ today.total|inr }}</span>
+    <span class="stat__meta">{{ today.count }} deliver{{ today.count|pluralize:"y,ies" }} · {{ today.km|floatformat:1 }} km</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">{% include "rider/partials/icon.html" with name="clock" %} Online</span>
+    <span class="stat__value">{{ online_minutes|duration }}</span>
+  </div>
+  <div class="stat">
+    <span class="stat__label">{% include "rider/partials/icon.html" with name="star" %} Rating</span>
+    <span class="stat__value">{{ partner.rating }}</span>
+  </div>
+</section>
+
+<!-- Ongoing delivery -->
+{% if active %}
+  <a href="{% url 'rider:order' active.order_number %}" class="card card--active">
+    <div class="card__head">
+      <span class="live"><span class="live__dot"></span> Ongoing delivery</span>
+      <span class="chip">#{{ active.order_number }}</span>
+    </div>
+
+    <div class="trip-mini">
+      <div class="trip-mini__stop {% if active_stage <= 2 %}is-next{% endif %}">
+        <span class="trip-mini__icon">{% include "rider/partials/icon.html" with name="store" %}</span>
+        <div><small>Pickup</small><b>{{ active.shop.name }}</b></div>
+      </div>
+      <div class="trip-mini__line"></div>
+      <div class="trip-mini__stop {% if active_stage >= 3 %}is-next{% endif %}">
+        <span class="trip-mini__icon trip-mini__icon--drop">{% include "rider/partials/icon.html" with name="pin" %}</span>
+        <div><small>Drop</small><b>{{ active.customer.user.display_name }}</b></div>
+      </div>
+    </div>
+
+    <div class="card__foot">
+      <span class="muted">
+        {% if active_stage == 1 %}Head to the shop{% elif active_stage == 2 %}Collect the order{% elif active_stage == 3 %}On the way to customer{% else %}Complete the handover{% endif %}
+      </span>
+      <span class="btn btn--primary btn--sm">Continue {% include "rider/partials/icon.html" with name="chevron" %}</span>
+    </div>
+  </a>
+{% endif %}
+
+<!-- New order requests -->
+{% if partner.can_take_orders and not active %}
+  <section class="section">
+    <div class="section__head">
+      <h2>New orders</h2>
+      {% if new_orders %}<span class="chip chip--brand">{{ new_orders|length }} nearby</span>{% endif %}
+    </div>
+
+    {% for order in new_orders %}
+      <article class="request">
+        <div class="request__top">
+          <div>
+            <span class="request__pay">{{ order.rider_earning|inr }}</span>
+            <span class="muted small">earning · {{ order.distance_km }} km</span>
+          </div>
+          <div class="request__tags">
+            {% if order.payment_method == "cod" %}<span class="chip chip--amber">{% include "rider/partials/icon.html" with name="cash" %} Collect {{ order.grand_total|inr }}</span>
+            {% else %}<span class="chip">Prepaid</span>{% endif %}
+          </div>
+        </div>
+
+        <ol class="stops">
+          <li>
+            <span class="stops__dot stops__dot--shop"></span>
+            <div><small>Pickup · placed {{ order.created_at|ago }}</small><b>{{ order.shop.name }}</b><span class="muted">{{ order.shop.address }}</span></div>
+          </li>
+          <li>
+            <span class="stops__dot stops__dot--drop"></span>
+            <div><small>Drop</small><b>{{ order.delivery_address|drop_area }}</b></div>
+          </li>
+        </ol>
+
+        <div class="request__meta">
+          <span>{% include "rider/partials/icon.html" with name="bag" %} {{ order.item_qty }} item{{ order.item_qty|pluralize }}</span>
+          <span>{% include "rider/partials/icon.html" with name="clock" %} ~{{ order.distance_km|trip_minutes }} min</span>
+          <span>{% include "rider/partials/icon.html" with name="shield" %} 21+ ID check</span>
+        </div>
+
+        <div class="request__actions">
+          <form method="post" action="{% url 'rider:skip' order.order_number %}">{% csrf_token %}<button class="btn btn--ghost">Skip</button></form>
+          <form method="post" action="{% url 'rider:accept' order.order_number %}">{% csrf_token %}<button class="btn btn--primary btn--block">Accept order</button></form>
+        </div>
+      </article>
+    {% empty %}
+      <div class="searching">
+        <div class="radar"><span></span><span></span><img src="{% static 'delivery/img/favicon/favicon-32.png' %}" alt=""></div>
+        <h3>Looking for orders near you…</h3>
+        <p class="muted">Stay online. New requests show up here — pull to refresh or tap below.</p>
+        <a href="{% url 'rider:home' %}" class="btn btn--ghost btn--sm">Refresh</a>
+      </div>
+    {% endfor %}
+  </section>
+{% endif %}
+
+<!-- Weekly bonus -->
+<section class="card">
+  <div class="card__row">
+    <span class="badge-icon">{% include "rider/partials/icon.html" with name="gift" %}</span>
+    <div class="grow">
+      <h2>Weekly bonus {{ bonus|inr }}</h2>
+      <p class="muted small">{% if target_left %}Complete {{ target_left }} more deliver{{ target_left|pluralize:"y,ies" }} by Sunday{% else %}Target reached — bonus unlocked! 🎉{% endif %}</p>
+    </div>
+    <span class="progress-text">{{ week.count }}/{{ target }}</span>
+  </div>
+  <div class="progress"><span style="width: {{ week.count|percent_of:target }}%"></span></div>
+</section>
+
+<!-- Safety -->
+<section class="tip">
+  {% include "rider/partials/icon.html" with name="shield" %}
+  <p><b>Every delivery needs an ID check.</b> Never hand over alcohol to anyone under 21 or anyone who appears intoxicated.</p>
+</section>
+{% endblock %}

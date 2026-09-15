@@ -1,0 +1,7 @@
+{# One form field: label, input, help text, errors. Add required=True for fields that only some roles need. #}
+<div class="field {% if field.errors %}has-error{% endif %}">
+  <label for="{{ field.id_for_label }}">{{ field.label }}{% if not field.field.required and not required %} <span class="optional">optional</span>{% endif %}</label>
+  {{ field }}
+  {% if field.help_text and field.name != "shops" %}<small class="field-help">{{ field.help_text }}</small>{% endif %}
+  {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+</div>

@@ -1,0 +1,58 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in · Booze Admin</title>
+  <link rel="icon" href="{% static 'delivery/img/favicon/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'delivery/img/favicon/favicon-32.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'delivery/img/favicon/icon-192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'delivery/img/favicon/apple-touch-icon.png' %}">
+  <meta name="theme-color" content="#00663F">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'panel/css/panel.css' %}">
+</head>
+<body class="auth-page">
+  <main class="auth">
+    <div class="auth__card">
+      <div class="brand brand--center">
+        <span class="brand__mark">b</span>
+        <span class="brand__name">booze <small>admin</small></span>
+      </div>
+
+      <h1>Sign in to the admin panel</h1>
+      <p class="muted">Restricted area — administrators only.</p>
+
+      {% if messages %}
+        {% for message in messages %}<div class="alert alert--error">{% include "panel/partials/icon.html" with name="alert" %}<span>{{ message }}</span></div>{% endfor %}
+      {% endif %}
+
+      {% if form.non_field_errors %}
+        <div class="alert alert--error">
+          {% include "panel/partials/icon.html" with name="alert" %}
+          <span>{% for error in form.non_field_errors %}{{ error }}{% endfor %}</span>
+        </div>
+      {% endif %}
+
+      <form method="post" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+        {% for field in form %}
+          <div class="field">
+            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+          </div>
+        {% endfor %}
+        <button class="btn btn--primary btn--block btn--lg">Sign in</button>
+      </form>
+
+      <p class="auth__foot">
+        {% include "panel/partials/icon.html" with name="shield" %}
+        Customers, retailers and delivery partners can't sign in here.
+      </p>
+    </div>
+    <a href="{% url 'delivery:home' %}" class="auth__back">← Back to storefront</a>
+  </main>
+</body>
+</html>

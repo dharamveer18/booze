@@ -1,0 +1,38 @@
+{# Column chart of orders per day. Needs: chart (see views.orders_chart) #}
+{% load panel_tags %}
+  <!-- Orders per day -->
+  <section class="card">
+    <header class="card__head">
+      <div>
+        <h2>Orders, last 14 days</h2>
+        <p class="muted">{{ chart.total }} orders in total</p>
+      </div>
+    </header>
+
+    <div class="colchart" role="img" aria-label="Column chart of orders per day for the last 14 days">
+      <div class="colchart__axis">
+        {% for tick in chart.ticks %}<span>{{ tick }}</span>{% endfor %}
+      </div>
+      <div class="colchart__plot">
+        <div class="colchart__grid">{% for tick in chart.ticks %}<span></span>{% endfor %}</div>
+        <div class="colchart__bars">
+          {% for row in chart.rows %}
+            <div class="colchart__slot" tabindex="0" data-tip="{{ row.day|date:'D, j M' }} · {{ row.count }} order{{ row.count|pluralize }}">
+              <span class="colchart__bar {% if forloop.last %}is-today{% endif %}" style="height: {{ row.count|percent_of:chart.max }}%"></span>
+            </div>
+          {% endfor %}
+        </div>
+        <div class="colchart__labels">
+          {% for row in chart.rows %}<span>{% if forloop.first or forloop.last or forloop.counter == 7 %}{{ row.day|date:"j M" }}{% endif %}</span>{% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <details class="table-toggle">
+      <summary>View as table</summary>
+      <table class="mini-table">
+        <thead><tr><th>Day</th><th class="num">Orders</th></tr></thead>
+        <tbody>{% for row in chart.rows %}<tr><td>{{ row.day|date:"D, j M" }}</td><td class="num">{{ row.count }}</td></tr>{% endfor %}</tbody>
+      </table>
+    </details>
+  </section>

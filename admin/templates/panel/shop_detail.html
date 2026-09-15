@@ -1,0 +1,103 @@
+{% extends "panel/base.html" %}
+{% load panel_tags %}
+
+{% block title %}{{ shop.name }}{% endblock %}
+{% block breadcrumb %}<p class="crumbs"><a href="{% url 'panel:shops' %}">{% if user.is_admin %}Retailers{% else %}My shops{% endif %}</a> / {{ shop.name }}</p>{% endblock %}
+{% block heading %}{{ shop.name }}{% endblock %}
+{% block actions %}
+  {% if user.is_admin %}
+    {% include "panel/partials/toggle_button.html" with key="shop-active" pk=shop.pk on=shop.is_active on_label="Unlist shop" off_label="List shop" confirm="Change whether customers can order from this shop?" %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="detail">
+  <aside class="detail__side">
+    <section class="card">
+      <header class="card__head card__head--tight">
+        <h3 class="card__title">Liquor licence</h3>
+        {% if user.is_admin %}{% include "panel/partials/toggle_button.html" with key="shop-licence" pk=shop.pk on=shop.is_licence_verified on_label="Revoke" off_label="Verify" %}{% endif %}
+      </header>
+      <div class="licence-card">
+        <p class="mono licence-card__no">{{ shop.licence_number }}</p>
+        <p class="muted">Type {{ shop.licence_type }}</p>
+        {% include "panel/partials/licence_status.html" %}
+      </div>
+      {% if not shop.is_licence_valid %}
+        <div class="alert alert--warn">{% include "panel/partials/icon.html" with name="alert" %}<span>Customers can't order from this shop until the licence is verified and valid.{% if not user.is_admin %} Please send your renewed licence to the Booze team.{% endif %}</span></div>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <h3 class="card__title">Details</h3>
+      <dl class="facts">
+        <dt>Listing</dt><dd>{% if shop.is_active %}<span class="status status--on">Listed</span>{% else %}<span class="status status--off">Unlisted</span>{% endif %}</dd>
+        <dt>Address</dt><dd>{{ shop.address }}, {{ shop.city }} {{ shop.pincode }}</dd>
+        <dt>Phone</dt><dd class="mono">{{ shop.phone }}</dd>
+        <dt>Hours</dt><dd>{{ shop.opens_at|time:"g:i A" }} – {{ shop.closes_at|time:"g:i A" }}</dd>
+        <dt>Radius</dt><dd>{{ shop.delivery_radius_km }} km</dd>
+        <dt>Owner</dt>
+        <dd>
+          {% if shop.owner %}
+            {% if user.is_admin %}<a href="{% url 'panel:user_detail' shop.owner.user.pk %}" class="link">{{ shop.owner.business_name }}</a>{% else %}{{ shop.owner.business_name }}{% endif %}
+            <div class="muted">{{ shop.owner.user.display_name }} · KYC {% if shop.owner.is_kyc_verified %}verified{% else %}pending{% endif %}</div>
+          {% else %}—{% endif %}
+        </dd>
+      </dl>
+    </section>
+  </aside>
+
+  <div class="detail__main">
+    <section class="kpis kpis--3">
+      <article class="kpi"><p class="kpi__label">Sales</p><p class="kpi__value">{{ sales.revenue|inr }}</p><p class="kpi__meta">Excluding cancelled</p></article>
+      <article class="kpi"><p class="kpi__label">Orders</p><p class="kpi__value">{{ sales.count }}</p></article>
+      <article class="kpi"><p class="kpi__label">Products</p><p class="kpi__value">{{ inventory_count }}</p><p class="kpi__meta">{% if out_of_stock %}<span class="text-bad">{{ out_of_stock }} out of stock</span>{% else %}All in stock{% endif %}</p></article>
+    </section>
+
+    <section class="card card--flush">
+      <header class="card__head"><h2>Lowest stock</h2></header>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Product</th><th>Category</th><th class="num">Price</th><th class="num">Stock</th></tr></thead>
+          <tbody>
+            {% for item in low_stock %}
+              <tr>
+                <td><b>{{ item.product.name }}</b><div class="sub">{{ item.product.volume_label }}</div></td>
+                <td>{{ item.product.category.name }}</td>
+                <td class="num">{{ item.price|inr }}</td>
+                <td class="num">{% if item.stock == 0 %}<span class="pill pill--red">Out</span>{% elif item.stock < 10 %}<span class="pill pill--amber">{{ item.stock }}</span>{% else %}{{ item.stock }}{% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4"><div class="empty"><p class="muted">No products listed.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card card--flush">
+      <header class="card__head">
+        <h2>Recent orders</h2>
+        <a href="{% url 'panel:orders' %}?shop={{ shop.pk }}" class="link">All orders</a>
+      </header>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            {% for order in orders %}
+              <tr>
+                <td><a href="{% url 'panel:order_detail' order.order_number %}" class="strong mono">#{{ order.order_number }}</a><div class="sub">{{ order.created_at|date:"j M, g:i A" }}</div></td>
+                <td>{{ order.customer.user.display_name }}</td>
+                <td><span class="pill pill--{{ order.status|order_tone }}">{{ order.get_status_display }}</span></td>
+                <td class="num strong">{{ order.grand_total|inr }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="4"><div class="empty"><p class="muted">No orders yet.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

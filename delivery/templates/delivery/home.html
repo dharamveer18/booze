@@ -1,0 +1,98 @@
+{% extends "delivery/base.html" %}
+
+{% block content %}
+
+{% if not current_shop %}
+  <div class="empty empty--page">
+    <div class="empty__art">🏪</div>
+    <h3>No licensed store in your area yet</h3>
+    <p>We're onboarding licensed retailers near you. Check back soon!</p>
+  </div>
+{% else %}
+
+  {% if not selected_category and not query %}
+    <!-- Hero banners -->
+    <section class="banners">
+      <a href="?category=beer" class="banner banner--amber">
+        <div>
+          <p class="banner__kicker">Chilled & ready</p>
+          <h2>Ice-cold beers<br>in {{ delivery_minutes }} minutes</h2>
+          <span class="banner__cta">Order now</span>
+        </div>
+        <div class="banner__art">🍺</div>
+      </a>
+      <a href="?category=wine" class="banner banner--wine">
+        <div>
+          <p class="banner__kicker">Date night</p>
+          <h2>Wines for every mood</h2>
+          <span class="banner__cta">Explore</span>
+        </div>
+        <div class="banner__art">🍷</div>
+      </a>
+      <a href="?category=whisky" class="banner banner--green">
+        <div>
+          <p class="banner__kicker">Party ready</p>
+          <h2>Premium whisky<br>up to 15% off</h2>
+          <span class="banner__cta">Shop whisky</span>
+        </div>
+        <div class="banner__art">🥃</div>
+      </a>
+    </section>
+
+    <!-- Trust strip: why this is safe & legal -->
+    <section class="trust">
+      <div><span>🏪</span><p><b>Licensed retailers only</b><small>Sold & billed by {{ current_shop.name }}</small></p></div>
+      <div><span>🪪</span><p><b>ID check at doorstep</b><small>{{ legal_age }}+ age verification</small></p></div>
+      <div><span>⚡</span><p><b>Superfast delivery</b><small>Chilled, sealed, in minutes</small></p></div>
+    </section>
+  {% endif %}
+
+  <!-- Categories -->
+  <nav class="categories" aria-label="Categories">
+    <a href="{% url 'delivery:home' %}" class="category {% if not selected_category %}is-active{% endif %}">
+      <span class="category__icon">✨</span><span>All</span>
+    </a>
+    {% for category in categories %}
+      <a href="?category={{ category.slug }}" class="category {% if selected_category == category %}is-active{% endif %}">
+        <span class="category__icon">{{ category.emoji }}</span><span>{{ category.name }}</span>
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if sections %}
+    {% for section in sections %}
+      <section class="rail">
+        <div class="rail__head">
+          <h2>{{ section.category.name }}</h2>
+          <a href="?category={{ section.category.slug }}">see all</a>
+        </div>
+        <div class="rail__track">
+          {% for sp in section.items %}{% include "delivery/partials/product_card.html" %}{% endfor %}
+        </div>
+      </section>
+    {% endfor %}
+  {% else %}
+    <section class="listing">
+      <div class="rail__head">
+        <h2>
+          {% if query %}Results for “{{ query }}”{% else %}{{ selected_category.name }}{% endif %}
+          <small>{{ listings|length }} item{{ listings|length|pluralize }}</small>
+        </h2>
+      </div>
+      {% if listings %}
+        <div class="grid">
+          {% for sp in listings %}{% include "delivery/partials/product_card.html" %}{% endfor %}
+        </div>
+      {% else %}
+        <div class="empty">
+          <div class="empty__art">🔍</div>
+          <h3>Nothing found</h3>
+          <p>Try searching for something else.</p>
+          <a class="btn btn--primary" href="{% url 'delivery:home' %}">Back to home</a>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+{% endif %}
+{% endblock %}

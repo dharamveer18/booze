@@ -1,0 +1,22 @@
+{# Orders by status. Needs: statuses, status_max #}
+{% load panel_tags %}
+  <!-- Orders by status -->
+  <section class="card">
+    <header class="card__head">
+      <div>
+        <h2>Orders by status</h2>
+        <p class="muted">All time</p>
+      </div>
+    </header>
+    <ul class="hbars">
+      {% for s in statuses %}
+        <li>
+          <a href="{% url 'panel:orders' %}?status={{ s.value }}" class="hbars__row">
+            <span class="hbars__label">{{ s.label }}</span>
+            <span class="hbars__track"><span class="hbars__fill" style="width: {{ s.count|percent_of:status_max }}%"></span></span>
+            <span class="hbars__value">{{ s.count }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>

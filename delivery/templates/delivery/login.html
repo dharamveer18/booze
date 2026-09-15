@@ -1,0 +1,27 @@
+{% extends "delivery/base.html" %}
+{% block title %}Log in · Booze{% endblock %}
+
+{% block content %}
+<div class="auth">
+  <div class="auth__card">
+    <div class="auth__logo">b<span>.</span></div>
+    <h1>Drinks delivered in minutes</h1>
+    <p class="muted">Log in with your mobile number</p>
+
+    <form method="post" class="form">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-error">Incorrect mobile number or password.</div>{% endif %}
+      {% for field in form %}
+        <div class="field">
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+        </div>
+      {% endfor %}
+      <input type="hidden" name="next" value="{{ next }}">
+      <button class="btn btn--primary btn--block">Continue</button>
+    </form>
+
+    <p class="auth__switch">New to Booze? <a href="{% url 'delivery:signup' %}{% if next %}?next={{ next|urlencode }}{% endif %}">Create an account</a></p>
+  </div>
+</div>
+{% endblock %}

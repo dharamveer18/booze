@@ -1,0 +1,242 @@
+{% extends "rider/base.html" %}
+{% load static panel_tags rider_tags %}
+
+{% block title %}Order #{{ order.order_number }}{% endblock %}
+
+{% block topbar %}
+<header class="topbar topbar--plain">
+  <a href="{% if is_finished %}{% url 'rider:history' %}{% else %}{% url 'rider:home' %}{% endif %}" class="icon-btn" aria-label="Back">{% include "rider/partials/icon.html" with name="back" %}</a>
+  <div class="topbar__title">
+    <b>#{{ order.order_number }}</b>
+    <small>{{ order.created_at|date:"j M, g:i A" }}</small>
+  </div>
+  <span class="chip {% if order.status == 'delivered' %}chip--brand{% elif order.status == 'cancelled' %}chip--red{% else %}chip--amber{% endif %}">
+    {% if order.status == "delivered" %}Delivered{% elif order.status == "cancelled" %}Cancelled{% else %}In progress{% endif %}
+  </span>
+</header>
+{% endblock %}
+
+{% block content %}
+
+{% if celebrate %}
+  <section class="celebrate" data-celebrate>
+    <div class="celebrate__burst">🎉</div>
+    <h2>Delivered!</h2>
+    <p>You earned <b>{{ order.rider_earning|inr }}</b> for this trip.</p>
+    <a href="{% url 'rider:home' %}" class="btn btn--primary btn--lg btn--block">Find next order</a>
+  </section>
+{% endif %}
+
+{% if not is_finished %}
+  <!-- Live map -->
+  {% include "rider/partials/map.html" %}
+
+  <!-- What to do now -->
+  <section class="card card--now">
+    {% if stage_key == "reached_shop" %}
+      <p class="now__kicker">Step 1 of 4 · Go to pickup</p>
+      <h2>{{ order.shop.name }}</h2>
+      <p class="muted">{{ order.shop.address }}, {{ order.shop.city }}</p>
+      <div class="now__meta">
+        <span>{% include "rider/partials/icon.html" with name="route" %} {{ order.distance_km }} km trip</span>
+        <span>{% include "rider/partials/icon.html" with name="clock" %} ~{{ order.distance_km|trip_minutes }} min</span>
+      </div>
+      <div class="now__buttons">
+        <a class="btn btn--ghost" href="https://www.google.com/maps/dir/?api=1&destination={{ order.shop.address|add:', '|add:order.shop.city|urlencode }}" target="_blank" rel="noopener">{% include "rider/partials/icon.html" with name="navigate" %} Navigate</a>
+        <a class="btn btn--ghost" href="tel:{{ order.shop.phone }}">{% include "rider/partials/icon.html" with name="phone" %} Call shop</a>
+      </div>
+
+    {% elif stage_key == "picked_up" %}
+      <p class="now__kicker">Step 2 of 4 · At the shop</p>
+      <h2>Collect the sealed order</h2>
+      <p class="muted">Match the items below with the bill. Only pick up a sealed bag with the shop's invoice.</p>
+
+    {% elif stage_key == "reached_customer" %}
+      <p class="now__kicker">Step 3 of 4 · Drop</p>
+      <h2>{{ order.customer.user.display_name }}</h2>
+      <p class="muted">{{ order.delivery_address }}</p>
+      <div class="now__buttons">
+        <a class="btn btn--ghost" href="https://www.google.com/maps/dir/?api=1&destination={{ order.delivery_address|urlencode }}" target="_blank" rel="noopener">{% include "rider/partials/icon.html" with name="navigate" %} Navigate</a>
+        <a class="btn btn--ghost" href="tel:{{ order.customer.user.phone }}">{% include "rider/partials/icon.html" with name="phone" %} Call customer</a>
+      </div>
+
+    {% elif stage_key == "delivered" %}
+      <p class="now__kicker">Step 4 of 4 · Handover</p>
+      <h2>Verify & deliver</h2>
+      <p class="muted">Check the customer's government ID and ask for the 4-digit OTP shown on their order screen.</p>
+      {% if is_cod %}
+        <div class="cod">{% include "rider/partials/icon.html" with name="cash" %}<span>Collect <b>{{ order.grand_total|inr }}</b> in cash</span></div>
+      {% endif %}
+    {% endif %}
+
+    <!-- Main action -->
+    {% if stage_key == "delivered" %}
+      <button class="btn btn--primary btn--lg btn--block" data-open-sheet="deliver">{% include "rider/partials/icon.html" with name="shield" %} Verify ID & enter OTP</button>
+    {% else %}
+      <form method="post" action="{% url 'rider:advance' order.order_number %}" data-slide-form>
+        {% csrf_token %}
+        <div class="slide" data-slide>
+          <span class="slide__track-text">
+            {% if stage_key == "reached_shop" %}Slide when you reach the shop{% elif stage_key == "picked_up" %}Slide after picking up{% else %}Slide when you've arrived{% endif %}
+          </span>
+          <span class="slide__fill" data-slide-fill></span>
+          <button class="slide__knob" data-slide-knob aria-label="{% if stage_key == 'reached_shop' %}Reached shop{% elif stage_key == 'picked_up' %}Picked up{% else %}Reached customer{% endif %}">
+            {% include "rider/partials/icon.html" with name="chevron" %}
+          </button>
+        </div>
+      </form>
+    {% endif %}
+  </section>
+{% endif %}
+
+<!-- Trip timeline -->
+<section class="card">
+  <h3 class="card__title">Trip progress</h3>
+  <ol class="timeline">
+    {% for step in steps %}
+      <li class="{% if step.done %}is-done{% endif %} {% if step.current %}is-current{% endif %}">
+        <span class="timeline__dot">{% if step.done %}{% include "rider/partials/icon.html" with name="check" %}{% endif %}</span>
+        <span class="timeline__label">{{ step.label }}</span>
+        <span class="timeline__time">{% if step.time %}{{ step.time|time:"g:i A" }}{% elif step.current %}Now{% endif %}</span>
+      </li>
+    {% endfor %}
+    {% if order.status == "cancelled" %}
+      <li class="is-cancelled">
+        <span class="timeline__dot">{% include "rider/partials/icon.html" with name="x" %}</span>
+        <span class="timeline__label">Cancelled · {{ order.cancel_reason }}</span>
+        <span class="timeline__time">{{ order.updated_at|time:"g:i A" }}</span>
+      </li>
+    {% endif %}
+  </ol>
+</section>
+
+<!-- Earnings for this trip -->
+<section class="card card--pay">
+  <div>
+    <small class="muted">{% if order.status == "delivered" %}You earned{% elif order.status == "cancelled" %}Trip pay (not paid){% else %}You'll earn{% endif %}</small>
+    <p class="pay">{{ order.rider_earning|inr }}</p>
+  </div>
+  <dl class="pay__split">
+    <dt>Base pay</dt><dd>₹25</dd>
+    <dt>Distance ({{ order.distance_km }} km × ₹7)</dt><dd>{{ order.rider_earning|add:"-25"|inr }}</dd>
+  </dl>
+</section>
+
+<!-- Pickup & drop details -->
+<section class="card">
+  <h3 class="card__title">Pickup & drop</h3>
+  <ol class="stops stops--detail">
+    <li>
+      <span class="stops__dot stops__dot--shop"></span>
+      <div>
+        <small>Pickup</small>
+        <b>{{ order.shop.name }}</b>
+        <span class="muted">{{ order.shop.address }}, {{ order.shop.city }}</span>
+        <span class="muted small mono">Licence {{ order.shop.licence_number }}</span>
+      </div>
+    </li>
+    <li>
+      <span class="stops__dot stops__dot--drop"></span>
+      <div>
+        <small>Drop</small>
+        <b>{{ order.customer.user.display_name }}</b>
+        <span class="muted">{% if is_finished %}{{ order.delivery_address|drop_area }}{% else %}{{ order.delivery_address }}{% endif %}</span>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- Items -->
+<section class="card">
+  <div class="card__head">
+    <h3 class="card__title">Items to deliver</h3>
+    <span class="chip">{{ order.item_count }} item{{ order.item_count|pluralize }}</span>
+  </div>
+  <ul class="items">
+    {% for item in items %}
+      <li>
+        <span class="items__qty">{{ item.quantity }}×</span>
+        <span class="items__name">{{ item.product_name }} <small class="muted">{{ item.volume_ml }} ml</small></span>
+        <span>{{ item.line_total|inr }}</span>
+      </li>
+    {% endfor %}
+  </ul>
+  <div class="items__total">
+    <span>{{ order.get_payment_method_display }} · {% if is_cod and order.status != "delivered" %}<b class="text-amber">collect cash</b>{% else %}{{ order.get_payment_status_display }}{% endif %}</span>
+    <b>{{ order.grand_total|inr }}</b>
+  </div>
+</section>
+
+<!-- Help -->
+{% if not is_finished %}
+  <section class="card card--help">
+    {% if not order.picked_up_at %}
+      <form method="post" action="{% url 'rider:release' order.order_number %}">
+        {% csrf_token %}
+        <button class="link-btn" data-confirm="Hand this order back so another partner can take it?">{% include "rider/partials/icon.html" with name="x" %} Can't do this order? Release it</button>
+      </form>
+    {% else %}
+      <button class="link-btn" data-open-sheet="issue">{% include "rider/partials/icon.html" with name="alert" %} Problem at the door? Report an issue</button>
+    {% endif %}
+    <a class="link-btn" href="tel:18000002669">{% include "rider/partials/icon.html" with name="headset" %} Call partner support</a>
+  </section>
+{% endif %}
+
+<!-- Bottom sheet: deliver -->
+{% if stage_key == "delivered" and not is_finished %}
+  <div class="sheet {% if open_sheet == 'deliver' %}is-open{% endif %}" data-sheet="deliver">
+    <div class="sheet__scrim" data-close-sheet></div>
+    <form method="post" action="{% url 'rider:deliver' order.order_number %}" class="sheet__panel">
+      {% csrf_token %}
+      <span class="sheet__grab"></span>
+      <h2>Complete delivery</h2>
+      <p class="muted">All checks are required by law for alcohol delivery.</p>
+
+      <label class="check-card">
+        <input type="checkbox" name="id_checked" required>
+        <span class="check-card__box">{% include "rider/partials/icon.html" with name="check" %}</span>
+        <span><b>Government photo ID checked</b><small>Name matches {{ order.customer.user.display_name }} and age is 21+</small></span>
+      </label>
+      <label class="check-card">
+        <input type="checkbox" name="customer_sober" required>
+        <span class="check-card__box">{% include "rider/partials/icon.html" with name="check" %}</span>
+        <span><b>Customer is not intoxicated</b><small>Don't deliver if they appear drunk</small></span>
+      </label>
+      {% if is_cod %}
+        <label class="check-card">
+          <input type="checkbox" name="cash_collected" required>
+          <span class="check-card__box">{% include "rider/partials/icon.html" with name="check" %}</span>
+          <span><b>Collected {{ order.grand_total|inr }} cash</b><small>Count the cash before handing over</small></span>
+        </label>
+      {% endif %}
+
+      <label class="otp-field">
+        <span>Customer's delivery OTP</span>
+        <input type="text" name="otp" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="one-time-code" placeholder="• • • •" required>
+      </label>
+      <p class="demo-hint">{% include "rider/partials/icon.html" with name="lock" %} Demo: the customer sees this OTP on their order page.</p>
+
+      <button class="btn btn--primary btn--lg btn--block">Mark as delivered</button>
+    </form>
+  </div>
+{% endif %}
+
+<!-- Bottom sheet: report issue -->
+{% if order.picked_up_at and not is_finished %}
+  <div class="sheet {% if open_sheet == 'issue' %}is-open{% endif %}" data-sheet="issue">
+    <div class="sheet__scrim" data-close-sheet></div>
+    <form method="post" action="{% url 'rider:issue' order.order_number %}" class="sheet__panel">
+      {% csrf_token %}
+      <span class="sheet__grab"></span>
+      <h2>What went wrong?</h2>
+      <p class="muted">The order will be cancelled. Return the sealed bag to <b>{{ order.shop.name }}</b>.</p>
+      <div class="radio-list">
+        {% for value, label in issue_form.fields.reason.choices %}
+          <label class="radio-row"><input type="radio" name="reason" value="{{ value }}" required><span>{{ label }}</span></label>
+        {% endfor %}
+      </div>
+      <button class="btn btn--danger btn--lg btn--block">Cancel delivery</button>
+    </form>
+  </div>
+{% endif %}
+{% endblock %}

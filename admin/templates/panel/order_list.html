@@ -1,0 +1,110 @@
+{% extends "panel/base.html" %}
+{% load panel_tags %}
+
+{% block title %}Orders{% endblock %}
+{% block heading %}Orders{% endblock %}
+{% block breadcrumb %}<p class="crumbs">{% if user.is_admin %}Every order placed on Booze{% else %}Orders placed at your shops{% endif %}</p>{% endblock %}
+
+{% block content %}
+<nav class="tabs" aria-label="Filter by status">
+  {% for tab in status_tabs %}
+    <a href="{% if tab.value %}{% querystring status=tab.value page=None %}{% else %}{% querystring status=None page=None %}{% endif %}"
+       class="tab {% if params.status|default:'' == tab.value %}is-active{% endif %}">{{ tab.label }} <span>{{ tab.count }}</span></a>
+  {% endfor %}
+</nav>
+
+<section class="card card--flush">
+  <form method="get" class="toolbar" data-auto-submit>
+    {% if params.status %}<input type="hidden" name="status" value="{{ params.status }}">{% endif %}
+    <label class="search">
+      {% include "panel/partials/icon.html" with name="search" %}
+      <input type="search" name="q" value="{{ params.q }}" placeholder="{% if user.is_admin %}Order no., customer name or phone…{% else %}Order no. or customer name…{% endif %}" data-no-auto>
+    </label>
+
+    <select name="period" class="select" aria-label="Date">
+      <option value="">Any date</option>
+      <option value="today" {% if params.period == "today" %}selected{% endif %}>Today</option>
+      <option value="7d" {% if params.period == "7d" %}selected{% endif %}>Last 7 days</option>
+      <option value="30d" {% if params.period == "30d" %}selected{% endif %}>Last 30 days</option>
+    </select>
+
+    {% if shops|length > 1 %}
+    <select name="shop" class="select" aria-label="Retailer">
+      <option value="">All retailers</option>
+      {% for shop in shops %}<option value="{{ shop.pk }}" {% if params.shop == shop.pk|stringformat:"d" %}selected{% endif %}>{{ shop.name }}</option>{% endfor %}
+    </select>
+    {% endif %}
+
+    <select name="payment" class="select" aria-label="Payment status">
+      <option value="">Any payment</option>
+      {% for value, label in payment_statuses %}<option value="{{ value }}" {% if params.payment == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+
+    <select name="method" class="select" aria-label="Payment method">
+      <option value="">Any method</option>
+      {% for value, label in payment_methods %}<option value="{{ value }}" {% if params.method == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+
+    <details class="date-range" {% if params.from or params.to %}open{% endif %}>
+      <summary class="select">Custom dates</summary>
+      <div class="date-range__body">
+        <label>From <input type="date" name="from" value="{{ params.from }}" class="input input--sm" data-no-auto></label>
+        <label>To <input type="date" name="to" value="{{ params.to }}" class="input input--sm" data-no-auto></label>
+        <button class="btn btn--sm btn--dark">Apply</button>
+      </div>
+    </details>
+
+    <div class="toolbar__end">
+      {% if active_filter_count %}<a href="{% url 'panel:orders' %}" class="link link--muted">Clear filters ({{ active_filter_count }})</a>{% endif %}
+      <select name="sort" class="select" aria-label="Sort">
+        {% for key, label in sort_options.items %}<option value="{{ key }}" {% if sort == key %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+  </form>
+
+  <div class="summary-strip">
+    <span><b>{{ page.paginator.count }}</b> orders</span>
+    <span class="dot-sep"></span>
+    <span><b>{{ filtered_revenue|inr }}</b> total value</span>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Order</th>
+          <th>Customer</th>
+          <th>Retailer</th>
+          <th>Rider</th>
+          <th>Status</th>
+          <th class="num">Amount</th>
+          <th>Payment</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in page %}
+          <tr class="is-link" data-href="{% url 'panel:order_detail' order.order_number %}">
+            <td>
+              <a href="{% url 'panel:order_detail' order.order_number %}" class="strong mono">#{{ order.order_number }}</a>
+              <div class="sub">{{ order.created_at|date:"j M, g:i A" }}</div>
+            </td>
+            <td>{{ order.customer.user.display_name }}{% if user.is_admin %}<div class="sub mono">{{ order.customer.user.phone }}</div>{% endif %}</td>
+            <td>{{ order.shop.name }}<div class="sub">{{ order.shop.city }}</div></td>
+            <td>{% if order.delivery_partner %}{{ order.delivery_partner.user.display_name }}{% else %}<span class="muted">Unassigned</span>{% endif %}</td>
+            <td><span class="pill pill--{{ order.status|order_tone }}">{{ order.get_status_display }}</span></td>
+            <td class="num"><b>{{ order.grand_total|inr }}</b><div class="sub">{{ order.item_qty }} item{{ order.item_qty|pluralize }}</div></td>
+            <td>
+              {{ order.get_payment_method_display }}
+              <div class="sub {% if order.payment_status == 'paid' %}text-ok{% elif order.payment_status == 'failed' %}text-bad{% endif %}">{{ order.get_payment_status_display }}</div>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="7">{% include "panel/partials/empty.html" with title="No orders found" text="Try a different search, date or status." %}</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% include "panel/partials/pagination.html" %}
+</section>
+{% endblock %}

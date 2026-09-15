@@ -1,0 +1,21 @@
+{% load delivery_extras %}
+<article class="card">
+  {% if sp.discount_percent %}<span class="card__badge">{{ sp.discount_percent }}%<br>OFF</span>{% endif %}
+  <div class="card__image">{% include "delivery/partials/bottle.html" with product=sp.product %}</div>
+  <div class="card__body">
+    <span class="card__eta">⏱ {{ delivery_minutes }} MINS</span>
+    <h3 class="card__name">{{ sp.product.name }}</h3>
+    <p class="card__meta">{{ sp.product.volume_label }} · {{ sp.product.abv|floatformat:"-1" }}% ABV</p>
+    <div class="card__foot">
+      <div class="price">
+        <b>₹{{ sp.price|floatformat:0 }}</b>
+        {% if sp.discount_percent %}<s>₹{{ sp.product.mrp|floatformat:0 }}</s>{% endif %}
+      </div>
+      {% if sp.in_stock %}
+        {% include "delivery/partials/qty_control.html" with id=sp.id qty=cart_quantities|get_item:sp.id %}
+      {% else %}
+        <span class="sold-out">Sold out</span>
+      {% endif %}
+    </div>
+  </div>
+</article>

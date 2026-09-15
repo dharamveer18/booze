@@ -1,0 +1,86 @@
+{% extends "rider/base.html" %}
+{% load panel_tags %}
+
+{% block title %}Earnings{% endblock %}
+
+{% block content %}
+<div class="page-title">
+  <h1>Earnings</h1>
+  <p class="muted">Paid to your bank every Monday</p>
+</div>
+
+<!-- This week -->
+<section class="card card--brand">
+  <small>This week</small>
+  <p class="big-money">{{ week.total|inr }}</p>
+  <p class="card--brand__meta">{{ week.count }} deliver{{ week.count|pluralize:"y,ies" }} · {{ week.km|floatformat:1 }} km</p>
+
+  <div class="mini-chart" role="img" aria-label="Earnings for the last 7 days">
+    {% for row in chart %}
+      <div class="mini-chart__col" tabindex="0" data-tip="{{ row.day|date:'D j M' }} · {{ row.amount|inr }}">
+        <span class="mini-chart__bar {% if forloop.last %}is-today{% endif %}" style="height: {{ row.amount|percent_of:chart_max }}%"></span>
+        <span class="mini-chart__label">{% if forloop.last %}Today{% else %}{{ row.day|date:"D" }}{% endif %}</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="stats stats--3">
+  <div class="stat"><span class="stat__label">Today</span><span class="stat__value">{{ today.total|inr }}</span><span class="stat__meta">{{ today.count }} trips</span></div>
+  <div class="stat"><span class="stat__label">This month</span><span class="stat__value">{{ month.total|inr }}</span><span class="stat__meta">{{ month.count }} trips</span></div>
+  <div class="stat"><span class="stat__label">Lifetime</span><span class="stat__value">{{ lifetime.total|inr }}</span><span class="stat__meta">{{ lifetime.count }} trips</span></div>
+</section>
+
+<!-- Weekly bonus -->
+<section class="card">
+  <div class="card__row">
+    <span class="badge-icon">{% include "rider/partials/icon.html" with name="gift" %}</span>
+    <div class="grow">
+      <h2>Weekly bonus {{ bonus|inr }}</h2>
+      <p class="muted small">{% if target_left %}{{ target_left }} more deliver{{ target_left|pluralize:"y,ies" }} to unlock · resets Monday{% else %}Unlocked! It'll be added to Monday's payout 🎉{% endif %}</p>
+    </div>
+    <span class="progress-text">{{ week.count }}/{{ target }}</span>
+  </div>
+  <div class="progress"><span style="width: {{ week.count|percent_of:target }}%"></span></div>
+</section>
+
+<!-- Cash -->
+<section class="card card--row">
+  <span class="badge-icon badge-icon--amber">{% include "rider/partials/icon.html" with name="cash" %}</span>
+  <div class="grow">
+    <h2>Cash in hand</h2>
+    <p class="muted small">Cash-on-delivery collected today. Deposit it at the hub before your shift ends.</p>
+  </div>
+  <b class="money">{{ cash_in_hand|inr }}</b>
+</section>
+
+<!-- How pay works -->
+<section class="card">
+  <h3 class="card__title">How you're paid per trip</h3>
+  <dl class="pay__split pay__split--wide">
+    <dt>Base pay</dt><dd>₹25</dd>
+    <dt>Distance pay</dt><dd>₹7 / km</dd>
+    <dt>Minimum per trip</dt><dd>₹30</dd>
+    <dt>Weekly bonus ({{ target }} trips)</dt><dd>{{ bonus|inr }}</dd>
+  </dl>
+</section>
+
+<!-- Payouts -->
+<section class="card card--flush">
+  <h3 class="card__title card__title--pad">Recent payouts</h3>
+  <ul class="payouts">
+    <li>
+      <span class="badge-icon badge-icon--sm badge-icon--amber">{% include "rider/partials/icon.html" with name="clock" %}</span>
+      <span class="grow"><b>This week</b><small class="muted">Pays next Monday</small></span>
+      <span class="payouts__amount"><b>{{ week.total|inr }}</b><small class="chip chip--amber chip--xs">Pending</small></span>
+    </li>
+    {% for p in payouts %}
+      <li>
+        <span class="badge-icon badge-icon--sm">{% include "rider/partials/icon.html" with name="check" %}</span>
+        <span class="grow"><b>{{ p.start|date:"j M" }} – {{ p.end|date:"j M" }}</b><small class="muted">{{ p.count }} trips{% if p.bonus %} · incl. {{ p.bonus|inr }} bonus{% endif %}</small></span>
+        <span class="payouts__amount"><b>{{ p.total|inr }}</b><small class="chip chip--brand chip--xs">{% if p.total %}Paid{% else %}No trips{% endif %}</small></span>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

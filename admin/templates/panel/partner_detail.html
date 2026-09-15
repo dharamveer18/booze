@@ -1,0 +1,67 @@
+{% extends "panel/base.html" %}
+{% load panel_tags %}
+
+{% block title %}{{ partner.user.display_name }}{% endblock %}
+{% block breadcrumb %}<p class="crumbs"><a href="{% url 'panel:partners' %}">Delivery partners</a> / {{ partner.user.display_name }}</p>{% endblock %}
+{% block heading %}{{ partner.user.display_name }}{% endblock %}
+{% block actions %}
+  {% include "panel/partials/toggle_button.html" with key="user-active" pk=partner.user.pk on=partner.user.is_active on_label="Deactivate account" off_label="Activate account" confirm="Change this rider's access?" %}
+  {% include "panel/partials/toggle_button.html" with key="partner-verified" pk=partner.pk on=partner.is_verified on_label="Remove verification" off_label="Verify partner" %}
+{% endblock %}
+
+{% block content %}
+<div class="detail">
+  <aside class="detail__side">
+    <section class="card profile">
+      <span class="avatar avatar--xl avatar--{{ partner.user|avatar_tone }}">{{ partner.user|initials }}</span>
+      <h2>{{ partner.user.display_name }}</h2>
+      <p class="muted mono">{{ partner.user.phone }}</p>
+      <div class="profile__pills">
+        {% if partner.is_verified %}<span class="check-text is-ok">{% include "panel/partials/icon.html" with name="check" %} Verified</span>
+        {% else %}<span class="check-text is-warn">{% include "panel/partials/icon.html" with name="alert" %} Pending verification</span>{% endif %}
+        {% if partner.is_online %}<span class="presence is-online">Online</span>{% else %}<span class="presence">Offline</span>{% endif %}
+      </div>
+      <dl class="facts">
+        <dt>Vehicle</dt><dd>{{ partner.get_vehicle_type_display }}</dd>
+        <dt>Vehicle no.</dt><dd class="mono">{{ partner.vehicle_number|default:"—" }}</dd>
+        <dt>Driving licence</dt><dd class="mono">{{ partner.driving_licence_number|default:"—" }}</dd>
+        <dt>Date of birth</dt><dd>{{ partner.date_of_birth|date:"j M Y" }}</dd>
+        <dt>Account</dt><dd>{% if partner.user.is_active %}<span class="status status--on">Active</span>{% else %}<span class="status status--off">Deactivated</span>{% endif %}</dd>
+        <dt>Joined</dt><dd>{{ partner.created_at|date:"j M Y" }}</dd>
+      </dl>
+    </section>
+  </aside>
+
+  <div class="detail__main">
+    <section class="kpis kpis--3">
+      <article class="kpi"><p class="kpi__label">Delivered</p><p class="kpi__value">{{ delivered }}</p></article>
+      <article class="kpi"><p class="kpi__label">In progress</p><p class="kpi__value">{{ in_progress }}</p></article>
+      <article class="kpi"><p class="kpi__label">Rating</p><p class="kpi__value">{{ partner.rating }}<span class="kpi__of">/ 5</span></p></article>
+    </section>
+
+    <section class="card card--flush">
+      <header class="card__head">
+        <h2>Recent deliveries</h2>
+      </header>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Order</th><th>Customer</th><th>Retailer</th><th>Status</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            {% for order in orders %}
+              <tr>
+                <td><a href="{% url 'panel:order_detail' order.order_number %}" class="strong mono">#{{ order.order_number }}</a><div class="sub">{{ order.created_at|date:"j M, g:i A" }}</div></td>
+                <td>{{ order.customer.user.display_name }}</td>
+                <td>{{ order.shop.name }}</td>
+                <td><span class="pill pill--{{ order.status|order_tone }}">{{ order.get_status_display }}</span></td>
+                <td class="num strong">{{ order.grand_total|inr }}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="5"><div class="empty"><p class="muted">No deliveries yet.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% load static %}<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Booze — Drinks delivered in minutes{% endblock %}</title>
+  <link rel="icon" href="{% static 'delivery/img/favicon/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'delivery/img/favicon/favicon-32.png' %}">
+  <link rel="icon" type="image/png" sizes="192x192" href="{% static 'delivery/img/favicon/icon-192.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'delivery/img/favicon/apple-touch-icon.png' %}">
+  <meta name="theme-color" content="#00663F">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'delivery/css/style.css' %}">
+</head>
+<body>
+  {% csrf_token %}
+
+  <!-- ===================== HEADER ===================== -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="{% url 'delivery:home' %}" class="logo" aria-label="Booze home">
+        <img src="{% static 'delivery/img/logo.svg' %}" alt="Booze" width="420" height="172">
+      </a>
+
+      <details class="location">
+        <summary>
+          <strong>Delivery in {{ delivery_minutes }} minutes</strong>
+          <small>
+            {% if current_shop %}From {{ current_shop.name }}, {{ current_shop.city }}{% else %}No store available{% endif %}
+            <svg width="10" height="10" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="3" fill="none"/></svg>
+          </small>
+        </summary>
+        <div class="location__menu">
+          <p class="location__title">Choose a licensed store near you</p>
+          {% for shop in all_shops %}
+            <form method="post" action="{% url 'delivery:choose_shop' %}">
+              {% csrf_token %}
+              <input type="hidden" name="shop_id" value="{{ shop.id }}">
+              <button class="location__option {% if shop.id == current_shop.id %}is-selected{% endif %}">
+                <span class="location__name">{{ shop.name }}</span>
+                <span class="location__meta">{{ shop.address }}, {{ shop.city }}</span>
+                <span class="location__licence">✓ Licence {{ shop.licence_type }} · {{ shop.licence_number }}</span>
+              </button>
+            </form>
+          {% endfor %}
+        </div>
+      </details>
+
+      <form class="search" action="{% url 'delivery:home' %}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input type="search" name="q" value="{{ query }}" placeholder='Search "whisky", "beer", "wine"…'>
+      </form>
+
+      <nav class="header__actions">
+        {% if user.is_authenticated %}
+          <details class="account">
+            <summary>Account <svg width="10" height="10" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="3" fill="none"/></svg></summary>
+            <div class="account__menu">
+              <p class="account__name">{{ user.get_full_name|default:user.username }}</p>
+              <a href="{% url 'delivery:order_list' %}">My orders</a>
+              {% if user.is_admin %}<a href="{% url 'panel:dashboard' %}">Admin panel</a>{% endif %}
+              <form method="post" action="{% url 'delivery:logout' %}">{% csrf_token %}<button>Log out</button></form>
+            </div>
+          </details>
+        {% else %}
+          <a href="{% url 'delivery:login' %}" class="link-btn">Login</a>
+        {% endif %}
+
+        <button class="cart-btn" data-open-cart>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6h15l-1.5 9h-12z"/><path d="M6 6L5 3H2"/><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></svg>
+          <span data-cart-label>
+            {% if cart.count %}<b>{{ cart.count }} item{{ cart.count|pluralize }}</b><b>₹{{ cart.grand_total|floatformat:0 }}</b>{% else %}My Cart{% endif %}
+          </span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  {% if messages %}
+    <div class="toasts">
+      {% for message in messages %}<div class="toast toast--{{ message.tags }}">{{ message }}</div>{% endfor %}
+    </div>
+  {% endif %}
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div>
+        <a href="{% url 'delivery:home' %}" class="logo logo--small">booz<span>e</span></a>
+        <p>Booze is a technology & delivery platform. We do not buy, stock or sell alcohol. Every order is sold and billed by a government-licensed retailer.</p>
+      </div>
+      <p class="footer__legal">🔞 Drinking below {{ legal_age }} is prohibited. Please drink responsibly. Don't drink and drive.</p>
+    </div>
+  </footer>
+
+  <!-- Floating cart bar (mobile, home page only) -->
+  {% if request.resolver_match.url_name == "home" %}
+    <button class="cart-bar {% if not cart.count %}is-hidden{% endif %}" data-open-cart data-cart-bar>
+      <span data-cart-bar-label>{{ cart.count }} item{{ cart.count|pluralize }} · ₹{{ cart.grand_total|floatformat:0 }}</span>
+      <span>View cart ›</span>
+    </button>
+  {% endif %}
+
+  <!-- ===================== CART DRAWER ===================== -->
+  <div class="drawer-overlay" data-close-cart></div>
+  <aside class="drawer" aria-label="Cart">
+    <div class="drawer__head">
+      <h2>My Cart</h2>
+      <button class="icon-btn" data-close-cart aria-label="Close cart">✕</button>
+    </div>
+    <div class="drawer__body" data-drawer-body>
+      {% include "delivery/partials/cart_drawer_body.html" %}
+    </div>
+  </aside>
+
+  <!-- ===================== AGE GATE ===================== -->
+  {% if not age_gate_passed %}
+    <div class="age-gate" data-age-gate>
+      <div class="age-gate__card">
+        <div class="age-gate__icon">🥂</div>
+        <h2>Are you {{ legal_age }} or older?</h2>
+        <p>You must be of legal drinking age in your state to browse and order on Booze. We verify your ID at delivery.</p>
+        <div class="age-gate__actions">
+          <button class="btn btn--ghost" data-age-no>No, I'm not</button>
+          <button class="btn btn--primary" data-age-yes data-url="{% url 'delivery:confirm_age' %}">Yes, I am {{ legal_age }}+</button>
+        </div>
+        <p class="age-gate__denied" data-age-denied hidden>Sorry, you can't use Booze yet. See you when you're {{ legal_age }}! 👋</p>
+      </div>
+    </div>
+  {% endif %}
+
+  <script>window.BOOZE = { cartUpdateUrl: "{% url 'delivery:cart_update' %}" };</script>
+  <script src="{% static 'delivery/js/app.js' %}"></script>
+</body>
+</html>

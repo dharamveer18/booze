@@ -1,0 +1,64 @@
+{% load rider_tags %}
+{# Dummy live map: street grid, shop & customer pins, route and a moving rider. Needs: order, stage_key #}
+{% with shop=order|map_point:"shop" drop=order|map_point:"customer" %}
+{% route_path order as route %}
+<div class="map">
+  <svg viewBox="0 0 360 240" aria-hidden="true">
+    <defs>
+      <pattern id="blocks" width="60" height="60" patternUnits="userSpaceOnUse">
+        <rect width="60" height="60" fill="#eef1ea"/>
+        <rect x="6" y="6" width="48" height="48" rx="6" fill="#e3e8de"/>
+      </pattern>
+      <g id="rider-marker">
+        <circle r="15" fill="#00663F" opacity=".18"><animate attributeName="r" values="13;19;13" dur="1.8s" repeatCount="indefinite"/></circle>
+        <circle r="11" fill="#00663F" stroke="#fff" stroke-width="2.5"/>
+        <g transform="translate(-7 -7) scale(.58)" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="5.5" cy="17" r="3.5"/><circle cx="18.5" cy="17" r="3.5"/><path d="M5.5 17l4-8h5l4 8M9 6h3M14.5 9l-3 8"/>
+        </g>
+      </g>
+    </defs>
+
+    <rect width="360" height="240" fill="url(#blocks)"/>
+    <rect x="186" y="126" width="48" height="48" rx="6" fill="#d4ead0"/>
+    <path d="M300 190c20-8 50 0 60 20v30h-80c-8-24 4-42 20-50z" fill="#cfe3f3"/>
+    <path d="M0 120H360M180 0V240" stroke="#fff" stroke-width="10"/>
+
+    <!-- route -->
+    <path d="{{ route }}" fill="none" stroke="#00663F" stroke-opacity=".16" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="{{ route }}" fill="none" stroke="#00663F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 8" class="map__route"/>
+
+    <!-- shop pin -->
+    <g transform="translate({{ shop.0 }} {{ shop.1 }})">
+      <circle r="14" fill="#fff" stroke="#00663F" stroke-width="2"/>
+      <path d="M-6 -2l1.5-5h9L6 -2M-5 -2v8h10v-8" fill="none" stroke="#00663F" stroke-width="1.8" stroke-linejoin="round"/>
+    </g>
+    <!-- customer pin -->
+    <g transform="translate({{ drop.0 }} {{ drop.1 }})">
+      <path d="M0 -2c-9-9-12-13-12-18a12 12 0 0 1 24 0c0 5-3 9-12 18z" fill="#e5484d"/>
+      <circle cy="-20" r="4.5" fill="#fff"/>
+    </g>
+
+    <!-- the rider: where it is depends on the trip step -->
+    {% if stage_key == "reached_shop" %}
+      <use href="#rider-marker">
+        <animateMotion dur="5s" repeatCount="indefinite" path="M{{ shop.0|add:'-50' }} {{ shop.1|add:'30' }} H{{ shop.0|add:'-18' }} V{{ shop.1 }}"/>
+      </use>
+    {% elif stage_key == "picked_up" %}
+      <use href="#rider-marker" x="{{ shop.0|add:'22' }}" y="{{ shop.1|add:'18' }}"/>
+    {% elif stage_key == "reached_customer" %}
+      <use href="#rider-marker"><animateMotion dur="7s" repeatCount="indefinite" path="{{ route }}"/></use>
+    {% else %}
+      <use href="#rider-marker" x="{{ drop.0|add:'-22' }}" y="{{ drop.1|add:'8' }}"/>
+    {% endif %}
+  </svg>
+
+  <div class="map__status">
+    <span class="live__dot"></span>
+    {% if stage_key == "reached_shop" %}Heading to pickup
+    {% elif stage_key == "picked_up" %}At the shop
+    {% elif stage_key == "reached_customer" %}On the way · {{ order.distance_km|trip_minutes }} min to drop
+    {% else %}At customer's location{% endif %}
+  </div>
+  <span class="map__badge">Demo map</span>
+</div>
+{% endwith %}

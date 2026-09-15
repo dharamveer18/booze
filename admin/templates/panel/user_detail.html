@@ -1,0 +1,160 @@
+{% extends "panel/base.html" %}
+{% load panel_tags %}
+
+{% block title %}{{ profile_user.display_name }}{% endblock %}
+{% block breadcrumb %}<p class="crumbs"><a href="{% url 'panel:users' %}">Users</a> / {{ profile_user.display_name }}</p>{% endblock %}
+{% block heading %}{{ profile_user.display_name }}{% endblock %}
+{% block actions %}
+  {% if profile_user != user %}
+    {% include "panel/partials/toggle_button.html" with key="user-active" pk=profile_user.pk on=profile_user.is_active on_label="Deactivate account" off_label="Activate account" confirm="Change this account's access?" %}
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="detail">
+  <!-- Left: profile -->
+  <aside class="detail__side">
+    <section class="card profile">
+      <span class="avatar avatar--xl avatar--{{ profile_user|avatar_tone }}">{{ profile_user|initials }}</span>
+      <h2>{{ profile_user.display_name }}</h2>
+      <p class="muted">@{{ profile_user.username }}</p>
+      <div class="profile__pills">
+        <span class="pill pill--{{ profile_user.role|role_tone }}">{{ profile_user.get_role_display }}</span>
+        {% if profile_user.is_active %}<span class="status status--on">Active</span>{% else %}<span class="status status--off">Deactivated</span>{% endif %}
+      </div>
+
+      <dl class="facts">
+        <dt>Phone</dt><dd class="mono">{{ profile_user.phone|default:"—" }}</dd>
+        <dt>Email</dt><dd>{{ profile_user.email|default:"—" }}</dd>
+        <dt>Joined</dt><dd>{{ profile_user.date_joined|date:"j M Y" }}</dd>
+        <dt>Last login</dt><dd>{{ profile_user.last_login|date:"j M Y, g:i A"|default:"Never" }}</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h3 class="card__title">Role</h3>
+      <form method="post" class="inline-fields">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="role">
+        {{ role_form.role }}
+        <button class="btn btn--dark btn--sm">Save</button>
+      </form>
+      {% for error in role_form.role.errors %}<p class="field-error field-error--block">{{ error }}</p>{% endfor %}
+      <p class="hint"><b>Admins</b> see everything in this panel. <b>Retailers</b> can sign in too, but only see their own shops and orders.</p>
+    </section>
+  </aside>
+
+  <!-- Right: role details -->
+  <div class="detail__main">
+    {% if customer %}
+      <section class="kpis kpis--3">
+        <article class="kpi"><p class="kpi__label">Orders</p><p class="kpi__value">{{ order_stats.count }}</p></article>
+        <article class="kpi"><p class="kpi__label">Total spent</p><p class="kpi__value">{{ order_stats.total|inr }}</p></article>
+        <article class="kpi"><p class="kpi__label">Age</p><p class="kpi__value">{{ customer.age }}<span class="kpi__of">yrs</span></p></article>
+      </section>
+
+      <section class="card">
+        <header class="card__head">
+          <div>
+            <h2>Age verification</h2>
+            <p class="muted">Born {{ customer.date_of_birth|date:"j M Y" }}{% if customer.id_type %} · {{ customer.get_id_type_display }} ending {{ customer.id_last_four }}{% endif %}</p>
+          </div>
+          <div class="row-actions">
+            {% if customer.is_age_verified %}<span class="check-text is-ok">{% include "panel/partials/icon.html" with name="check" %} Verified</span>
+            {% else %}<span class="check-text is-warn">{% include "panel/partials/icon.html" with name="alert" %} Not verified</span>{% endif %}
+            {% include "panel/partials/toggle_button.html" with key="customer-age" pk=customer.pk on=customer.is_age_verified on_label="Mark unverified" off_label="Mark verified" %}
+          </div>
+        </header>
+        {% if not customer.is_of_legal_age %}
+          <div class="alert alert--error">{% include "panel/partials/icon.html" with name="alert" %}<span>This customer is below the legal drinking age.</span></div>
+        {% endif %}
+      </section>
+
+      <section class="card">
+        <h3 class="card__title">Saved addresses</h3>
+        <ul class="list">
+          {% for address in customer.addresses.all %}
+            <li><b>{{ address.get_label_display }}</b>{% if address.is_default %} <span class="pill pill--gray">Default</span>{% endif %}<div class="muted">{{ address.full_address }}</div></li>
+          {% empty %}
+            <li class="muted">No saved addresses.</li>
+          {% endfor %}
+        </ul>
+      </section>
+
+      <section class="card card--flush">
+        <header class="card__head">
+          <h2>Recent orders</h2>
+          <a href="{% url 'panel:orders' %}?q={{ profile_user.phone }}" class="link">All orders</a>
+        </header>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Order</th><th>Retailer</th><th>Status</th><th class="num">Amount</th></tr></thead>
+            <tbody>
+              {% for order in orders %}
+                <tr>
+                  <td><a href="{% url 'panel:order_detail' order.order_number %}" class="strong mono">#{{ order.order_number }}</a><div class="sub">{{ order.created_at|date:"j M, g:i A" }}</div></td>
+                  <td>{{ order.shop.name }}</td>
+                  <td><span class="pill pill--{{ order.status|order_tone }}">{{ order.get_status_display }}</span></td>
+                  <td class="num strong">{{ order.grand_total|inr }}</td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="4"><div class="empty"><p class="muted">No orders yet.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    {% elif partner %}
+      <section class="card">
+        <header class="card__head">
+          <div><h2>Delivery partner profile</h2><p class="muted">{{ partner.get_vehicle_type_display }} · {{ partner.vehicle_number }}</p></div>
+          <a href="{% url 'panel:partner_detail' partner.pk %}" class="btn btn--ghost btn--sm">Open partner</a>
+        </header>
+      </section>
+
+    {% elif owner %}
+      <section class="card">
+        <header class="card__head">
+          <div><h2>{{ owner.business_name }}</h2><p class="muted">Retailer · KYC {% if owner.is_kyc_verified %}verified{% else %}pending{% endif %} · GST {{ owner.gst_number|default:"—" }}</p></div>
+          {% if not profile_user.is_active %}<span class="pill pill--red">Can't sign in — account deactivated</span>
+          {% else %}<span class="pill pill--green">Can sign in to this panel</span>{% endif %}
+        </header>
+
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="shops">
+          <p class="field-label">Shops this retailer owns</p>
+          <p class="hint hint--flush">They'll only see orders and details for the ticked shops.</p>
+          <div class="check-list">
+            {% for shop in shops_form.fields.shops.queryset %}
+              <label class="check-row">
+                <input type="checkbox" name="shops" value="{{ shop.pk }}" {% if shop.owner_id == owner.pk %}checked{% endif %}>
+                <span class="check-row__info">
+                  <b>{{ shop.name }}</b>
+                  <small>{{ shop.city }} · <span class="mono">{{ shop.licence_number }}</span></small>
+                </span>
+                {% if shop.owner_id == owner.pk %}<span class="pill pill--green">Owned</span>
+                {% elif shop.owner %}<span class="pill pill--amber">Owned by {{ shop.owner.business_name }}</span>
+                {% else %}<span class="pill pill--gray">No owner</span>{% endif %}
+              </label>
+            {% endfor %}
+          </div>
+          <div class="form-actions form-actions--left">
+            <button class="btn btn--dark btn--sm">Save shops</button>
+          </div>
+        </form>
+      </section>
+
+    {% else %}
+      <section class="card">
+        <div class="empty">
+          <span class="empty__icon">{% include "panel/partials/icon.html" with name="shield" %}</span>
+          <p class="empty__title">{{ profile_user.get_role_display }} account</p>
+          <p class="muted">This account has no customer, retailer or rider profile.</p>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

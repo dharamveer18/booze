@@ -1,0 +1,76 @@
+{% extends "delivery/base.html" %}
+{% block title %}Order {{ order.order_number }} · Booze{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <a href="{% url 'delivery:order_list' %}" class="back">‹ My orders</a>
+  <h1>Order #{{ order.order_number }}</h1>
+</div>
+
+<div class="checkout">
+  <div class="checkout__main">
+    {% if order.status == "cancelled" %}
+      <section class="status-hero status-hero--cancelled">
+        <h2>Order cancelled</h2>
+        <p>{{ order.cancel_reason|default:"This order was cancelled." }}</p>
+      </section>
+    {% else %}
+      <section class="status-hero {% if order.status == 'delivered' %}status-hero--done{% endif %}">
+        <p class="status-hero__kicker">{% if order.status == "delivered" %}Delivered{% else %}Arriving in{% endif %}</p>
+        <h2>{% if order.status == "delivered" %}Enjoy responsibly 🥂{% else %}{{ delivery_minutes }} minutes{% endif %}</h2>
+        <p>{{ order.get_status_display }}</p>
+
+        <ol class="timeline">
+          {% for step in timeline %}
+            <li class="{% if step.done %}is-done{% endif %} {% if step.active %}is-active{% endif %}">
+              <span class="timeline__dot"></span><span>{{ step.label }}</span>
+            </li>
+          {% endfor %}
+        </ol>
+      </section>
+
+      {% if order.status != "delivered" %}
+        <section class="panel otp">
+          <div>
+            <h3 class="panel__title">Delivery OTP</h3>
+            <p class="muted">Share this with the delivery partner only after they verify your ID.</p>
+          </div>
+          <div class="otp__code">{{ order.delivery_otp }}</div>
+        </section>
+      {% endif %}
+    {% endif %}
+
+    <section class="panel">
+      <h3 class="panel__title">{{ order.item_count }} item{{ order.item_count|pluralize }} in this order</h3>
+      {% for item in order.items.all %}
+        <div class="summary-item">
+          <span class="summary-item__qty">{{ item.quantity }}×</span>
+          <span class="summary-item__name">{{ item.product_name }} <small class="muted">{{ item.volume_ml }} ml</small></span>
+          <span>₹{{ item.line_total|floatformat:0 }}</span>
+        </div>
+      {% endfor %}
+    </section>
+  </div>
+
+  <aside class="checkout__side">
+    <div class="panel">
+      <h3 class="panel__title">Bill details</h3>
+      <div class="bill-row"><span>Items total</span><span>₹{{ order.item_total|floatformat:0 }}</span></div>
+      <div class="bill-row"><span>Delivery charge</span><span>{% if order.delivery_fee %}₹{{ order.delivery_fee|floatformat:0 }}{% else %}<b class="green">FREE</b>{% endif %}</span></div>
+      <div class="bill-row"><span>Platform fee</span><span>₹{{ order.platform_fee|floatformat:0 }}</span></div>
+      <div class="bill-row bill-row--total"><span>Total</span><span>₹{{ order.grand_total|floatformat:0 }}</span></div>
+      <p class="muted small">{{ order.get_payment_method_display }} · {{ order.get_payment_status_display }}</p>
+    </div>
+
+    <div class="panel">
+      <h3 class="panel__title">Order details</h3>
+      <dl class="details">
+        <dt>Deliver to</dt><dd>{{ order.delivery_address }}</dd>
+        <dt>Sold by</dt><dd>{{ order.shop.name }}<br><small class="muted">Licence {{ order.shop.licence_type }} · {{ order.shop.licence_number }}</small></dd>
+        <dt>Delivery partner</dt><dd>{% if order.delivery_partner %}{{ order.delivery_partner.user.get_full_name }} · ⭐ {{ order.delivery_partner.rating }}{% else %}Assigning shortly…{% endif %}</dd>
+        <dt>Placed on</dt><dd>{{ order.created_at|date:"d M Y, g:i A" }}</dd>
+      </dl>
+    </div>
+  </aside>
+</div>
+{% endblock %}

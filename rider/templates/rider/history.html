@@ -1,0 +1,75 @@
+{% extends "rider/base.html" %}
+{% load panel_tags rider_tags %}
+
+{% block title %}History{% endblock %}
+
+{% block content %}
+<div class="page-title">
+  <h1>Order history</h1>
+  <p class="muted">Every trip you've completed or cancelled</p>
+</div>
+
+<!-- Period filter -->
+<nav class="segmented" aria-label="Period">
+  {% for value, label in periods %}
+    <a href="?period={{ value }}{% if status %}&status={{ status }}{% endif %}" class="{% if period == value %}is-active{% endif %}">{{ label }}</a>
+  {% endfor %}
+</nav>
+
+<!-- Summary -->
+<section class="stats stats--3">
+  <div class="stat"><span class="stat__label">Delivered</span><span class="stat__value">{{ summary.delivered }}</span></div>
+  <div class="stat"><span class="stat__label">Earned</span><span class="stat__value">{{ summary.earned|default:0|inr }}</span></div>
+  <div class="stat"><span class="stat__label">Distance</span><span class="stat__value">{{ summary.km|default:0|floatformat:1 }}<small> km</small></span></div>
+</section>
+
+<!-- Status filter -->
+<div class="filter-chips">
+  <a href="?period={{ period }}" class="chip {% if not status %}chip--dark{% endif %}">All</a>
+  <a href="?period={{ period }}&status=delivered" class="chip {% if status == 'delivered' %}chip--dark{% endif %}">Delivered · {{ summary.delivered }}</a>
+  <a href="?period={{ period }}&status=cancelled" class="chip {% if status == 'cancelled' %}chip--dark{% endif %}">Cancelled · {{ summary.cancelled }}</a>
+</div>
+
+<!-- List -->
+<section class="history">
+  {% now "Y-m-d" as today_key %}
+  {% regroup page.object_list by created_at|date:"Y-m-d" as days %}
+  {% for day in days %}
+    <h3 class="history__day">{% if day.grouper == today_key %}Today{% else %}{{ day.list.0.created_at|date:"l, j M" }}{% endif %}</h3>
+    {% for order in day.list %}
+      <a href="{% url 'rider:order' order.order_number %}" class="trip">
+        <span class="trip__icon {% if order.status == 'cancelled' %}trip__icon--bad{% endif %}">
+          {% if order.status == "cancelled" %}{% include "rider/partials/icon.html" with name="x" %}{% else %}{% include "rider/partials/icon.html" with name="check" %}{% endif %}
+        </span>
+        <span class="trip__info">
+          <b>{{ order.shop.name }}</b>
+          <small class="muted">{{ order.delivery_address|drop_area }} · {{ order.distance_km }} km</small>
+          <small class="muted">
+            {{ order.created_at|time:"g:i A" }}
+            {% if order.status == "delivered" %} · {{ order.assigned_at|minutes_between:order.delivered_at }} min trip{% else %} · {{ order.cancel_reason|truncatechars:34 }}{% endif %}
+          </small>
+        </span>
+        <span class="trip__pay">
+          {% if order.status == "delivered" %}<b>+{{ order.rider_earning|inr }}</b>{% else %}<s class="muted">{{ order.rider_earning|inr }}</s>{% endif %}
+          {% if order.payment_method == "cod" %}<small class="chip chip--amber chip--xs">COD</small>{% endif %}
+        </span>
+      </a>
+    {% endfor %}
+  {% empty %}
+    <div class="searching">
+      <span class="badge-icon badge-icon--lg">{% include "rider/partials/icon.html" with name="history" %}</span>
+      <h3>No trips here yet</h3>
+      <p class="muted">Completed deliveries will show up in your history.</p>
+      <a href="{% url 'rider:home' %}" class="btn btn--primary btn--sm">Find orders</a>
+    </div>
+  {% endfor %}
+</section>
+
+{% if page.paginator.num_pages > 1 %}
+  <nav class="pager" aria-label="Pages">
+    {% if page.has_previous %}<a class="btn btn--ghost btn--sm" href="?period={{ period }}&status={{ status }}&page={{ page.previous_page_number }}">{% include "rider/partials/icon.html" with name="back" %} Newer</a>{% else %}<span></span>{% endif %}
+    <span class="muted small">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn btn--ghost btn--sm" href="?period={{ period }}&status={{ status }}&page={{ page.next_page_number }}">Older {% include "rider/partials/icon.html" with name="chevron" %}</a>{% else %}<span></span>{% endif %}
+  </nav>
+{% endif %}
+{% endblock %}

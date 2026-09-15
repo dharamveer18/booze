@@ -1,0 +1,31 @@
+{% extends "delivery/base.html" %}
+{% block title %}My orders · Booze{% endblock %}
+
+{% block content %}
+<div class="page-head">
+  <a href="{% url 'delivery:home' %}" class="back">‹ Home</a>
+  <h1>My orders</h1>
+</div>
+
+{% if orders %}
+  <div class="orders">
+    {% for order in orders %}
+      <a href="{% url 'delivery:order_detail' order.order_number %}" class="order-row">
+        <div class="order-row__icon">📦</div>
+        <div class="order-row__info">
+          <b>₹{{ order.grand_total|floatformat:0 }} · {{ order.item_count }} item{{ order.item_count|pluralize }}</b>
+          <small class="muted">#{{ order.order_number }} · {{ order.created_at|date:"d M, g:i A" }} · {{ order.shop.name }}</small>
+        </div>
+        <span class="status status--{{ order.status }}">{{ order.get_status_display }}</span>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty empty--page">
+    <div class="empty__art">📦</div>
+    <h3>No orders yet</h3>
+    <p>Your orders will show up here.</p>
+    <a class="btn btn--primary" href="{% url 'delivery:home' %}">Start shopping</a>
+  </div>
+{% endif %}
+{% endblock %}

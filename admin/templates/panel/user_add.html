@@ -1,0 +1,114 @@
+{% extends "panel/base.html" %}
+{% load panel_tags %}
+
+{% block title %}Add user{% endblock %}
+{% block breadcrumb %}<p class="crumbs"><a href="{% url 'panel:users' %}">Users</a> / Add user</p>{% endblock %}
+{% block heading %}Add user{% endblock %}
+
+{% block content %}
+<form method="post" class="add-user" novalidate>
+  {% csrf_token %}
+
+  {% if form.non_field_errors %}
+    <div class="alert alert--error">{% include "panel/partials/icon.html" with name="alert" %}<span>{{ form.non_field_errors|join:" " }}</span></div>
+  {% endif %}
+
+  <!-- 1. Account type -->
+  <section class="card">
+    <h2 class="section-title">Account type</h2>
+    <div class="role-cards" role="radiogroup" aria-label="Account type">
+      {% for card in role_cards %}
+        <label class="role-card">
+          <input type="radio" name="role" value="{{ card.value }}" {% if selected_role == card.value %}checked{% endif %} data-role-input>
+          <span class="role-card__box">
+            <span class="role-card__icon">{% include "panel/partials/icon.html" with name=card.icon %}</span>
+            <b>{{ card.label }}</b>
+            <small>{{ card.text }}</small>
+          </span>
+        </label>
+      {% endfor %}
+    </div>
+    {% for error in form.role.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+  </section>
+
+  <div class="add-user__cols">
+  <div class="add-user__main">
+
+  <!-- 2. Details -->
+  <section class="card">
+    <h2 class="section-title">Basic details</h2>
+    <div class="form-grid form-grid--3">
+      {% include "panel/partials/form_field.html" with field=form.first_name %}
+      {% include "panel/partials/form_field.html" with field=form.last_name %}
+      {% include "panel/partials/form_field.html" with field=form.phone %}
+      {% include "panel/partials/form_field.html" with field=form.email %}
+      <div data-role-section="customer delivery_partner" {% if selected_role != "customer" and selected_role != "delivery_partner" %}hidden{% endif %}>
+        {% include "panel/partials/form_field.html" with field=form.date_of_birth required=True %}
+      </div>
+    </div>
+    <p class="hint" data-role-section="customer" {% if selected_role != "customer" %}hidden{% endif %}>Customers must be {{ legal_age }} or older. Their ID is still checked at delivery.</p>
+  </section>
+
+  <!-- 3. Role-specific details (JS shows only the section for the selected role) -->
+  <section class="card" data-role-section="shop_owner" {% if selected_role != "shop_owner" %}hidden{% endif %}>
+    <h2 class="section-title">Retailer details</h2>
+    <div class="form-grid">
+      {% include "panel/partials/form_field.html" with field=form.business_name required=True %}
+      {% include "panel/partials/form_field.html" with field=form.gst_number %}
+    </div>
+
+    <p class="field-label spaced">Shops this retailer owns</p>
+    <p class="hint hint--flush">{{ form.shops.help_text }}</p>
+    <div class="check-list">
+      {% for shop in form.fields.shops.queryset %}
+        <label class="check-row">
+          <input type="checkbox" name="shops" value="{{ shop.pk }}" {% if shop.pk|stringformat:"d" in form.shops.value %}checked{% endif %}>
+          <span class="check-row__info">
+            <b>{{ shop.name }}</b>
+            <small>{{ shop.city }} · <span class="mono">{{ shop.licence_number }}</span></small>
+          </span>
+          {% if shop.owner %}<span class="pill pill--amber" title="Selecting this shop moves it to the new retailer">Owned by {{ shop.owner.business_name }}</span>
+          {% else %}<span class="pill pill--gray">No owner</span>{% endif %}
+        </label>
+      {% empty %}
+        <p class="muted">No shops yet.</p>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="card" data-role-section="delivery_partner" {% if selected_role != "delivery_partner" %}hidden{% endif %}>
+    <h2 class="section-title">Delivery partner details</h2>
+    <div class="form-grid form-grid--3">
+      {% include "panel/partials/form_field.html" with field=form.vehicle_type required=True %}
+      {% include "panel/partials/form_field.html" with field=form.vehicle_number %}
+      {% include "panel/partials/form_field.html" with field=form.driving_licence_number %}
+    </div>
+    <p class="hint">New delivery partners start as <b>pending verification</b> — verify them after the background check.</p>
+  </section>
+
+  <section class="card" data-role-section="admin" {% if selected_role != "admin" %}hidden{% endif %}>
+    <div class="alert alert--warn">{% include "panel/partials/icon.html" with name="shield" %}<span>Admins can see and change everything in this panel, including other users. Only create admin accounts for people on the Booze team.</span></div>
+  </section>
+
+  </div>
+
+  <!-- 4. Sign-in (sticky on the right) -->
+  <aside class="add-user__side">
+    <section class="card">
+      <h2 class="section-title">Sign-in details</h2>
+      <div class="stack">
+        {% include "panel/partials/form_field.html" with field=form.username %}
+        {% include "panel/partials/form_field.html" with field=form.password1 %}
+        {% include "panel/partials/form_field.html" with field=form.password2 %}
+      </div>
+      <p class="hint">Share the password with the person securely. Customers and delivery partners sign in on the app; retailers and admins sign in here.</p>
+
+      <div class="add-user__actions">
+        <button class="btn btn--primary btn--block btn--lg">Create account</button>
+        <a href="{% url 'panel:users' %}" class="btn btn--ghost btn--block">Cancel</a>
+      </div>
+    </section>
+  </aside>
+  </div>
+</form>
+{% endblock %}

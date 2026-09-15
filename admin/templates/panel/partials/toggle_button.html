@@ -1,0 +1,9 @@
+{# A small POST form that flips a yes/no field. Params: key, pk, on (bool), on_label, off_label #}
+<form method="post" action="{% url 'panel:toggle' key pk %}" class="inline-form">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+  <button class="btn btn--sm {% if on %}btn--ghost{% else %}{{ off_class|default:'btn--primary' }}{% endif %}"
+          {% if confirm %}data-confirm="{{ confirm }}"{% endif %}>
+    {% if on %}{{ on_label }}{% else %}{{ off_label }}{% endif %}
+  </button>
+</form>

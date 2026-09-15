@@ -1,0 +1,35 @@
+{% extends "rider/base.html" %}
+{% load static %}
+
+{% block title %}Sign in{% endblock %}
+{% block topbar %}{% endblock %}
+{% block tabbar %}{% endblock %}
+
+{% block content %}
+<div class="login">
+  <div class="login__hero">
+    <img src="{% static 'delivery/img/favicon/icon-512.png' %}" alt="Booze mascot" width="148" height="148">
+    <h1>Booze Partner</h1>
+    <p>Deliver happiness, earn on your own time.</p>
+  </div>
+
+  <form method="post" class="login__card">
+    {% csrf_token %}
+    <h2>Sign in to start delivering</h2>
+
+    {% if form.non_field_errors %}
+      <div class="alert alert--error">{% include "rider/partials/icon.html" with name="alert" %}<span>{% for e in form.non_field_errors %}{{ e }}{% endfor %}</span></div>
+    {% endif %}
+
+    {% for field in form %}
+      <label class="field">
+        <span>{{ field.label }}</span>
+        {{ field }}
+      </label>
+    {% endfor %}
+
+    <button class="btn btn--primary btn--block btn--lg">Sign in</button>
+    <p class="login__help">{% include "rider/partials/icon.html" with name="headset" %} Trouble signing in? Call partner support: <b>1800-000-2669</b></p>
+  </form>
+</div>
+{% endblock %}

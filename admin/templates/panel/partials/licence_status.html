@@ -1,0 +1,14 @@
+{# Licence badge for a shop. Needs: shop, expiring_before #}
+{% now "Y-m-d" as today %}
+<div class="licence">
+  <span>{{ shop.licence_valid_till|date:"j M Y" }}</span>
+  {% if not shop.is_licence_verified %}
+    <span class="pill pill--amber">Not verified</span>
+  {% elif shop.licence_valid_till|date:"Y-m-d" < today %}
+    <span class="pill pill--red">Expired</span>
+  {% elif shop.licence_valid_till <= expiring_before %}
+    <span class="pill pill--amber">Expires {{ shop.licence_valid_till|timeuntil }}</span>
+  {% else %}
+    <span class="pill pill--green">Valid</span>
+  {% endif %}
+</div>
