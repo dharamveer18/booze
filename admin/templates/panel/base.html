@@ -20,8 +20,8 @@
   <!-- ============ Sidebar ============ -->
   <aside class="sidebar" id="sidebar">
     <a href="{% url 'panel:dashboard' %}" class="brand">
-      <span class="brand__mark">b</span>
-      <span class="brand__name">booze <small>{% if user.is_admin %}admin{% else %}partner{% endif %}</small></span>
+      {% include "delivery/partials/logo.html" with class="brand__logo" %}
+      <span class="brand__tag">{% if user.is_admin %}Admin{% else %}Partner{% endif %}</span>
     </a>
 
     <nav class="nav">

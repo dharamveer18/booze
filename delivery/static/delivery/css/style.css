@@ -83,7 +83,8 @@ hr { border: 0; border-top: 1px dashed var(--line); margin: 12px 0; }
 .logo:hover img { transform: rotate(-2deg) scale(1.03); }
 .logo img { transition: transform .2s ease; }
 .logo span { color: var(--green); }
-.logo--small { font-size: 24px; font-weight: 800; letter-spacing: -1px; border: 0; padding: 0; height: auto; display: inline-block; }
+.logo--small { border: 0; padding: 0; height: auto; display: inline-block; }
+.logo--small img { height: 48px; }
 
 /* Location / store picker */
 .location { position: relative; min-width: 220px; }
@@ -429,8 +430,8 @@ body.cart-open .drawer { transform: none; }
 
 .auth { min-height: calc(100vh - var(--header-h) - 160px); display: grid; place-items: center; padding: 40px 0; }
 .auth__card { width: 100%; max-width: 420px; padding: 36px 32px; border-radius: 20px; background: #fff; box-shadow: 0 8px 40px rgba(0,0,0,.08); border: 1px solid #f0f0f0; }
-.auth__logo { width: 72px; height: 72px; border-radius: 18px; background: var(--yellow); display: grid; place-items: center; font-size: 36px; font-weight: 800; letter-spacing: -1px; margin-bottom: 20px; }
-.auth__logo span { color: var(--green); }
+.auth__logo { display: inline-block; margin-bottom: 20px; }
+.auth__logo img { display: block; height: 64px; width: auto; }
 .auth h1 { font-size: 22px; font-weight: 800; }
 .auth .form { margin-top: 24px; }
 .auth__switch { margin-top: 20px; text-align: center; color: var(--ink-2); }

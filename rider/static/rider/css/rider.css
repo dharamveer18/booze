@@ -82,7 +82,7 @@ button { cursor: pointer; }
   border-bottom: 1px solid var(--line);
 }
 .topbar__brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.topbar__brand img { width: 40px; height: 40px; border-radius: 12px; background: var(--cream); padding: 3px; }
+.topbar__logo { display: block; height: 32px; width: auto; flex-shrink: 0; padding-right: 10px; border-right: 1px solid var(--line); box-sizing: content-box; }
 .topbar__brand span { display: grid; line-height: 1.2; min-width: 0; }
 .topbar__brand small { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
 .is-online .topbar__brand small { color: var(--brand); }
@@ -167,7 +167,7 @@ button { cursor: pointer; }
 .card--warn h2 { color: #6d4200; }
 .card--offline { text-align: center; display: grid; justify-items: center; gap: 6px; padding: 24px 20px; background: linear-gradient(180deg, var(--cream) 0%, #fff 70%); }
 .card--offline form { width: 100%; margin-top: 12px; }
-.offline__art { filter: grayscale(.4); opacity: .9; margin-bottom: 4px; }
+.offline__art { height: 56px; width: auto; filter: grayscale(.5); opacity: .85; margin-bottom: 8px; }
 .card--brand { background: var(--brand); color: #fff; box-shadow: 0 10px 30px rgba(0, 102, 63, .25); }
 .card--brand small { color: rgba(255,255,255,.75); font-weight: 600; }
 .card--brand__meta { color: rgba(255,255,255,.8); font-size: 13px; }
@@ -473,7 +473,7 @@ button { cursor: pointer; }
 .login ~ * { display: none; }
 .screen:has(.login) { padding: 16px; }
 .login__hero { display: grid; justify-items: center; gap: 6px; padding: 8px 24px 16px; text-align: center; }
-.login__hero img { width: 132px; height: 132px; animation: bob 3s ease-in-out infinite; }
+.login__logo { height: 104px; width: auto; animation: bob 3s ease-in-out infinite; }
 @keyframes bob { 50% { transform: translateY(-6px) rotate(-3deg); } }
 .login__hero h1 { font-size: 28px; font-weight: 800; color: var(--brand); letter-spacing: -.6px; margin-top: 4px; }
 .login__hero p { color: #7a5a35; }

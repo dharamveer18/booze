@@ -8,8 +8,8 @@
 {% block content %}
 <div class="login">
   <div class="login__hero">
-    <img src="{% static 'delivery/img/favicon/icon-512.png' %}" alt="Booze mascot" width="148" height="148">
-    <h1>Booze Partner</h1>
+    {% include "delivery/partials/logo.html" with class="login__logo" %}
+    <h1>Partner App</h1>
     <p>Deliver happiness, earn on your own time.</p>
   </div>
 

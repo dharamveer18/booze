@@ -20,7 +20,7 @@
   <header class="header">
     <div class="header__inner">
       <a href="{% url 'delivery:home' %}" class="logo" aria-label="Booze home">
-        <img src="{% static 'delivery/img/logo.svg' %}" alt="Booze" width="420" height="172">
+        {% include "delivery/partials/logo.html" %}
       </a>
 
       <details class="location">
@@ -90,7 +90,7 @@
   <footer class="footer">
     <div class="container footer__inner">
       <div>
-        <a href="{% url 'delivery:home' %}" class="logo logo--small">booz<span>e</span></a>
+        <a href="{% url 'delivery:home' %}" class="logo logo--small" aria-label="Booze home">{% include "delivery/partials/logo.html" %}</a>
         <p>Booze is a technology & delivery platform. We do not buy, stock or sell alcohol. Every order is sold and billed by a government-licensed retailer.</p>
       </div>
       <p class="footer__legal">🔞 Drinking below {{ legal_age }} is prohibited. Please drink responsibly. Don't drink and drive.</p>

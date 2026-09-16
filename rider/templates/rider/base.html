@@ -18,7 +18,7 @@
   {% block topbar %}
   <header class="topbar">
     <a href="{% url 'rider:home' %}" class="topbar__brand" aria-label="Home">
-      <img src="{% static 'delivery/img/favicon/icon-192.png' %}" alt="" width="36" height="36">
+      {% include "delivery/partials/logo.html" with class="topbar__logo" %}
       <span>
         <small>{% if partner.is_online %}You're online{% else %}You're offline{% endif %}</small>
         <b>Hi, {{ partner.user.first_name|default:partner.user.username }}</b>

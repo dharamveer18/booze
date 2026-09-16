@@ -81,12 +81,12 @@ button { cursor: pointer; }
 
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px 20px; }
 .brand--center { justify-content: center; padding-bottom: 24px; }
-.brand__mark {
-  width: 32px; height: 32px; border-radius: var(--radius); display: grid; place-items: center;
-  background: var(--text); color: #fff; font-weight: 700; font-size: 17px; letter-spacing: -.5px;
+.brand__logo { display: block; height: 40px; width: auto; }
+.brand__logo--lg { height: 60px; }
+.brand__tag {
+  padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+  font-size: 11px; font-weight: 600; letter-spacing: .3px; text-transform: uppercase;
 }
-.brand__name { font-size: 17px; font-weight: 700; letter-spacing: -.4px; }
-.brand__name small { font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 2px; }
 
 .nav { display: grid; gap: 2px; flex: 1; align-content: start; overflow-y: auto; }
 .nav__label { padding: 16px 12px 6px; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }

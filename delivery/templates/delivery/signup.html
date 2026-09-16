@@ -4,7 +4,7 @@
 {% block content %}
 <div class="auth">
   <div class="auth__card">
-    <div class="auth__logo">b<span>.</span></div>
+    <a href="{% url 'delivery:home' %}" class="auth__logo" aria-label="Booze home">{% include "delivery/partials/logo.html" %}</a>
     <h1>Create your account</h1>
     <p class="muted">You must be {{ legal_age }}+ to sign up</p>
 

@@ -24,7 +24,7 @@
   </section>
 {% elif not partner.is_online %}
   <section class="card card--offline">
-    <img src="{% static 'delivery/img/favicon/icon-192.png' %}" alt="" width="84" height="84" class="offline__art">
+    {% include "delivery/partials/logo.html" with class="offline__art" %}
     <h2>You're offline</h2>
     <p class="muted">Go online to start getting delivery requests near you.</p>
     <form method="post" action="{% url 'rider:toggle_online' %}">
