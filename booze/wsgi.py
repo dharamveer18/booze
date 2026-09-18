@@ -9,10 +9,15 @@ https://docs.djangoproject.com/en/6.1/howto/deployment/wsgi/
 
 import os
 import sys
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # Project root: localhost vs PythonAnywhere
-LOCAL_PATH = "/var/www/Dharamveer/booze"
-PYTHONANYWHERE_PATH = "/home/boozze/booze"
+LOCAL_PATH = os.getenv("LOCAL_PATH", "/var/www/Dharamveer/booze")
+PYTHONANYWHERE_PATH = os.getenv("PYTHONANYWHERE_PATH", "/home/boozze/booze")
 
 path = PYTHONANYWHERE_PATH if os.path.isdir(PYTHONANYWHERE_PATH) else LOCAL_PATH
 
